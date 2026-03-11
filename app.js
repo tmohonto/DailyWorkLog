@@ -1,0 +1,799 @@
+// State Management
+let currentDate = new Date();
+let currentView = 'day-view';
+let selectedPeriod = 'AM';
+
+// Constants
+const AM_HOURS = ["6:50-6:59", "7:00-7:59", "8:00-8:59", "9:00-9:59", "10:00-10:59", "11:00-11:59", "12:00-12:59", "1:00-1:59", "2:00-2:59", "3:00-3:59", "4:00-4:59", "5:00-5:59", "6:00-6:49"];
+const PM_HOURS = ["12:00-12:59", "1:00-1:59", "2:00-2:59", "3:00-3:59", "4:00-4:59", "5:00-5:59", "6:00-6:49", "6:50-6:59", "7:00-7:59", "8:00-8:59", "9:00-9:59", "10:00-10:59", "11:00-11:59"];
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const STORAGE_KEY = 'WorkflowData';
+
+// Data Store
+let workData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+
+// Migrate old data on load (convert string tasks to objects)
+for (let d in workData) {
+    for (let p in workData[d]) {
+        for (let h in workData[d][p]) {
+            workData[d][p][h] = workData[d][p][h].map(task => {
+                if (typeof task === 'string') {
+                    return { desc: task, category: 'routine', done: false, id: Date.now() + Math.random() };
+                }
+                return task;
+            });
+        }
+    }
+}
+saveData();
+
+function saveData() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(workData));
+}
+
+let activeInlineInput = null; // Track where the user is currently typing
+
+// DOM Elements
+const tabs = document.querySelectorAll('.tab-btn');
+const views = document.querySelectorAll('.view-section');
+const periodToggles = document.querySelectorAll('.toggle-btn');
+const scheduleList = document.getElementById('schedule-list');
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    initApp();
+});
+
+tabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+        tabs.forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+
+        const targetView = e.target.dataset.tab;
+        views.forEach(v => {
+            v.classList.remove('active');
+            if (v.id === targetView) v.classList.add('active');
+        });
+
+        currentView = targetView;
+        renderCurrentView();
+    });
+});
+
+periodToggles.forEach(toggle => {
+    toggle.addEventListener('click', (e) => {
+        periodToggles.forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        selectedPeriod = e.target.dataset.period;
+        renderDayView();
+    });
+});
+
+// Navigation Handlers Day/Month/Year
+document.querySelector('.prev-date').addEventListener('click', () => { currentDate.setDate(currentDate.getDate() - 1); renderDayView(); });
+document.querySelector('.next-date').addEventListener('click', () => { currentDate.setDate(currentDate.getDate() + 1); renderDayView(); });
+
+document.querySelector('.prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderMonthView(); });
+document.querySelector('.next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderMonthView(); });
+
+document.querySelector('.prev-year').addEventListener('click', () => { currentDate.setFullYear(currentDate.getFullYear() - 1); renderYearView(); });
+document.querySelector('.next-year').addEventListener('click', () => { currentDate.setFullYear(currentDate.getFullYear() + 1); renderYearView(); });
+
+const MOTIVATIONAL_QUOTES = [
+    "The secret of getting ahead is getting started.",
+    "Don't stop when you're tired. Stop when you're done.",
+    "Small disciplines repeated with consistency every day lead to great achievements.",
+    "Every action you take is a vote for the type of person you wish to become.",
+    "Focus on being productive instead of busy.",
+    "Great acts are made up of small deeds.",
+    "Someday is not a day of the week. Start now.",
+    "The way to get started is to quit talking and begin doing."
+];
+
+function updateLiveClock() {
+    const clockEl = document.getElementById('live-clock');
+    if (!clockEl) return;
+    const now = new Date();
+    clockEl.textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+}
+
+// Core Functions
+function initApp() {
+    renderCurrentView();
+
+    // Set a random motivational quote
+    const quoteEl = document.getElementById('motivation-quote');
+    if (quoteEl) {
+        quoteEl.textContent = `"${MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]}"`;
+    }
+
+    // Initialize clock immediately, then every second
+    updateLiveClock();
+    setInterval(updateLiveClock, 1000);
+
+    setInterval(() => {
+        if (currentView === 'day-view') {
+            updateCurrentTimeHighlight();
+        }
+    }, 60000);
+}
+
+function renderCurrentView() {
+    if (currentView === 'day-view') renderDayView();
+    if (currentView === 'month-view') renderMonthView();
+    if (currentView === 'year-view') renderYearView();
+}
+
+function getFormatDate(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+// ---------------- DAY VIEW ----------------
+function renderDayView() {
+    // Header
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('current-date-display').textContent = currentDate.toLocaleDateString(undefined, options);
+
+    const shortOptions = { weekday: 'short', day: 'numeric' };
+    document.getElementById('widget-date-display').textContent = currentDate.toLocaleDateString(undefined, shortOptions);
+
+    // List
+    scheduleList.innerHTML = '';
+    const hours = selectedPeriod === 'AM' ? AM_HOURS : PM_HOURS;
+    const dateStr = getFormatDate(currentDate);
+
+    hours.forEach(hour => {
+        const row = document.createElement('div');
+        row.className = 'hour-row';
+
+        const label = document.createElement('div');
+        label.className = 'hour-label';
+        label.textContent = `${hour} ${selectedPeriod}`;
+        row.appendChild(label);
+
+        const tasksContainer = document.createElement('div');
+        tasksContainer.className = 'hour-tasks';
+
+        const currentTasks = workData[dateStr]?.[selectedPeriod]?.[hour] || [];
+
+        if (currentTasks.length === 0) {
+            if (activeInlineInput === hour) {
+                renderInlineInput(tasksContainer, dateStr, hour);
+            } else {
+                const empty = document.createElement('div');
+                empty.className = 'empty-slot';
+                empty.textContent = '+ Add work';
+                empty.title = "Click to add work to this hour";
+                empty.addEventListener('click', () => {
+                    activeInlineInput = hour;
+                    renderDayView();
+                });
+                tasksContainer.appendChild(empty);
+            }
+        } else {
+            currentTasks.forEach((task, index) => {
+                const taskBtn = document.createElement('div');
+                taskBtn.className = `task-item cat-${task.category} ${task.done ? 'done' : ''}`;
+
+                const cb = document.createElement('div');
+                cb.className = `task-checkbox ${task.done ? 'done' : ''}`;
+                cb.title = "Toggle Completion";
+                cb.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    task.done = !task.done;
+
+                    if (task.done && typeof confetti === 'function') {
+                        // Trigger satisfying confetti micro-interaction
+                        confetti({
+                            particleCount: 80,
+                            spread: 60,
+                            colors: ['#10b981', '#38bdf8', '#f43f5e', '#6366f1'],
+                            origin: { y: 0.6 }
+                        });
+                    }
+
+                    saveData();
+                    renderDayView();
+                });
+
+                const txt = document.createElement('div');
+                txt.className = 'task-text';
+                txt.textContent = task.desc;
+
+                const del = document.createElement('div');
+                del.className = 'task-delete';
+                del.innerHTML = '&times;';
+                del.title = "Delete Task";
+                del.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Remove this work: "${task.desc}"?`)) {
+                        workData[dateStr][selectedPeriod][hour].splice(index, 1);
+                        saveData();
+                        renderDayView();
+                    }
+                });
+
+                taskBtn.appendChild(cb);
+                taskBtn.appendChild(txt);
+                taskBtn.appendChild(del);
+
+                tasksContainer.appendChild(taskBtn);
+            });
+
+            if (activeInlineInput === hour) {
+                renderInlineInput(tasksContainer, dateStr, hour);
+            } else {
+                // Mini add button next to tasks
+                const addMore = document.createElement('div');
+                addMore.innerHTML = '&#43;';
+                addMore.style.cursor = 'pointer';
+                addMore.style.color = 'var(--text-secondary)';
+                addMore.style.padding = '0.5rem';
+                addMore.title = "Add another task";
+                addMore.addEventListener('click', () => {
+                    activeInlineInput = hour;
+                    renderDayView();
+                });
+                tasksContainer.appendChild(addMore);
+            }
+        }
+
+        row.appendChild(tasksContainer);
+        scheduleList.appendChild(row);
+
+        // Add Drag and Drop via SortableJS
+        if (typeof Sortable !== 'undefined') {
+            tasksContainer.dataset.hour = hour;
+            new Sortable(tasksContainer, {
+                group: 'shared',
+                animation: 150,
+                draggable: '.task-item',
+                onEnd: function (evt) {
+                    const fromHour = evt.from.dataset.hour;
+                    const toHour = evt.to.dataset.hour;
+
+                    if (!fromHour || !toHour) return;
+
+                    const movedTask = workData[dateStr][selectedPeriod][fromHour].splice(evt.oldDraggableIndex, 1)[0];
+
+                    if (!workData[dateStr][selectedPeriod][toHour]) {
+                        workData[dateStr][selectedPeriod][toHour] = [];
+                    }
+
+                    workData[dateStr][selectedPeriod][toHour].splice(evt.newDraggableIndex, 0, movedTask);
+
+                    saveData();
+                    renderDayView();
+                }
+            });
+        }
+    });
+
+    updateProgressRing();
+    updateCurrentTimeHighlight();
+}
+
+function renderInlineInput(container, dateStr, hour) {
+    const wrap = document.createElement('div');
+    wrap.className = 'inline-add-container';
+
+    const form = document.createElement('form');
+    form.className = 'inline-form';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'inline-input';
+    input.placeholder = 'What needs to be done?';
+    input.required = true;
+
+    const select = document.createElement('select');
+    select.className = 'inline-select';
+    select.innerHTML = `
+        <option value="routine">🔵 Routine</option>
+        <option value="work">💼 Work</option>
+        <option value="urgent">🔴 Urgent</option>
+        <option value="personal">🟢 Personal</option>
+    `;
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'submit';
+    saveBtn.className = 'inline-btn';
+    saveBtn.textContent = 'Save';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'inline-btn btn-cancel';
+    cancelBtn.textContent = 'Cancel';
+
+    cancelBtn.addEventListener('click', () => {
+        activeInlineInput = null;
+        renderDayView();
+    });
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveInlineTask(dateStr, selectedPeriod, hour, input.value, select.value);
+    });
+
+    form.appendChild(input);
+    form.appendChild(select);
+    form.appendChild(saveBtn);
+    form.appendChild(cancelBtn);
+    wrap.appendChild(form);
+
+    container.appendChild(wrap);
+
+    // Auto focus the input field when it appears
+    setTimeout(() => input.focus(), 10);
+}
+
+function saveInlineTask(dateStr, period, hour, desc, category) {
+    if (!workData[dateStr]) workData[dateStr] = { AM: {}, PM: {} };
+    if (!workData[dateStr][period]) workData[dateStr][period] = {};
+    if (!workData[dateStr][period][hour]) workData[dateStr][period][hour] = [];
+
+    workData[dateStr][period][hour].push({ desc, category, done: false, id: Date.now() });
+    saveData();
+    activeInlineInput = null;
+    renderCurrentView();
+}
+
+function updateProgressRing() {
+    const todayStr = getFormatDate(currentDate);
+    const dayData = workData[todayStr] || { AM: {}, PM: {} };
+    let total = 0, done = 0;
+
+    let counts = {
+        urgent: 0,
+        routine: 0,
+        work: 0,
+        personal: 0
+    };
+
+    ['AM', 'PM'].forEach(p => {
+        if (dayData[p]) {
+            Object.values(dayData[p]).forEach(arr => {
+                arr.forEach(t => {
+                    total++;
+                    if (t.done) done++;
+                    if (counts[t.category] !== undefined) {
+                        counts[t.category]++;
+                    }
+                });
+            });
+        }
+    });
+
+    const undone = total - done;
+
+    // Empty state logic
+    const emptyStateEl = document.getElementById('empty-day-state');
+    if (emptyStateEl) emptyStateEl.style.display = total === 0 ? 'block' : 'none';
+
+    // Center stats
+    const totalEl = document.getElementById('stat-total-center');
+    if (totalEl) totalEl.textContent = total;
+
+    // Helper function to format percentages
+    const formatPct = (val) => {
+        if (total === 0 || val === 0) return '0%';
+        let pct = (val / total) * 100;
+        return Number.isInteger(pct) ? pct + '%' : pct.toFixed(2) + '%';
+    };
+
+    // Outside category stats - Display count and percentages
+    const uEl = document.getElementById('chart-urgent');
+    if (uEl) uEl.textContent = `${counts.urgent} (${formatPct(counts.urgent)})`;
+    const wEl = document.getElementById('chart-work');
+    if (wEl) wEl.textContent = `${counts.work} (${formatPct(counts.work)})`;
+    const rEl = document.getElementById('chart-routine');
+    if (rEl) rEl.textContent = `${counts.routine} (${formatPct(counts.routine)})`;
+    const pEl = document.getElementById('chart-personal');
+    if (pEl) pEl.textContent = `${counts.personal} (${formatPct(counts.personal)})`;
+
+    // Only show categories that have > 0%
+    if (uEl) uEl.parentElement.style.display = counts.urgent > 0 ? 'flex' : 'none';
+    if (wEl) wEl.parentElement.style.display = counts.work > 0 ? 'flex' : 'none';
+    if (rEl) rEl.parentElement.style.display = counts.routine > 0 ? 'flex' : 'none';
+    if (pEl) pEl.parentElement.style.display = counts.personal > 0 ? 'flex' : 'none';
+
+    // Outside stats
+    const doneEl = document.getElementById('chart-done-count');
+    if (doneEl) doneEl.textContent = done;
+    const undoneEl = document.getElementById('chart-undone-count');
+    if (undoneEl) undoneEl.textContent = undone;
+
+    const svgEl = document.querySelector('.progress-svg');
+    const circleDone = document.getElementById('progress-value-circle'); // green
+    const circleUndone = document.querySelector('.progress-undone');   // red
+    const circleEmpty = document.querySelector('.progress-empty');     // white
+    const pieChart = document.getElementById('category-pie-chart');    // center pie chart
+
+    if (!svgEl || !circleDone || !circleUndone || !circleEmpty) return;
+
+    // The SVG circles have r=80
+    const circumference = 2 * Math.PI * 80; // approx 502.65
+    circleDone.style.strokeDasharray = `${circumference} ${circumference}`;
+    circleUndone.style.strokeDasharray = `${circumference} ${circumference}`;
+    circleEmpty.style.strokeDasharray = `${circumference} ${circumference}`;
+
+    if (total === 0) {
+        // Show white ring
+        circleEmpty.style.opacity = 1;
+        circleDone.style.opacity = 0;
+        circleUndone.style.opacity = 0;
+
+        circleEmpty.style.strokeDashoffset = 0; // Full circle
+        svgEl.classList.remove('spinning');
+
+        if (pieChart) pieChart.style.background = 'transparent';
+        return;
+    }
+
+    // Generate center pie chart gradient
+    if (pieChart) {
+        let gradientStops = [];
+        let currentPct = 0;
+        // Match CSS stroke colors and class names exactly
+        const colors = { urgent: '#f43f5e', work: '#6366f1', routine: '#38bdf8', personal: '#10b981' };
+
+        ['urgent', 'work', 'routine', 'personal'].forEach(cat => {
+            if (counts[cat] > 0) {
+                const slicePct = (counts[cat] / total) * 100;
+                gradientStops.push(`${colors[cat]} ${currentPct}% ${currentPct + slicePct}%`);
+                currentPct += slicePct;
+            }
+        });
+
+        pieChart.style.background = gradientStops.length > 0 ? `conic-gradient(${gradientStops.join(', ')})` : 'transparent';
+    }
+
+    // Tasks > 0: Show colored rings
+    circleEmpty.style.opacity = 0;
+    circleDone.style.opacity = 1;
+    circleUndone.style.opacity = 1;
+
+    // Red ring is the full base
+    circleUndone.style.strokeDashoffset = 0;
+
+    // Green ring partially fills the base
+    const pctDone = done / total;
+    const offsetDone = circumference - (pctDone * circumference);
+    circleDone.style.strokeDashoffset = offsetDone;
+
+    // "give the moving ring like now" -> the user wants it to spin when there are tasks.
+    svgEl.classList.add('spinning');
+}
+
+function updateCurrentTimeHighlight() {
+    if (currentView !== 'day-view') return;
+    document.querySelectorAll('.hour-row').forEach(row => row.classList.remove('current-time-slot'));
+
+    const now = new Date();
+    if (getFormatDate(now) !== getFormatDate(currentDate)) return; // Only highlight on actual today
+
+    let hours24 = now.getHours();
+    let displayHour12 = hours24 % 12 || 12;
+    let currentPeriod = hours24 >= 12 ? 'PM' : 'AM';
+    let mins = now.getMinutes();
+
+    document.querySelectorAll('.hour-row').forEach(row => {
+        const label = row.querySelector('.hour-label');
+        if (!label) return;
+        const text = label.textContent; // "10:00-10:59 AM"
+
+        if (text.endsWith(currentPeriod)) {
+            const hourPartStr = text.split(':')[0]; // "10"
+            const hourPart = parseInt(hourPartStr, 10);
+
+            if (hourPart === displayHour12) {
+                if (displayHour12 === 6) {
+                    if (mins < 50 && text.includes('6:00-6:49')) row.classList.add('current-time-slot');
+                    else if (mins >= 50 && text.includes('6:50-6:59')) row.classList.add('current-time-slot');
+                } else {
+                    row.classList.add('current-time-slot');
+                }
+            }
+        }
+    });
+}
+
+// ---------------- MONTH VIEW ----------------
+function renderMonthView() {
+    document.getElementById('current-month-display').textContent = `${MONTH_NAMES[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+
+    const grid = document.getElementById('month-calendar-grid');
+    grid.innerHTML = '';
+
+    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+    // Empty cells for prior days
+    for (let i = 0; i < firstDay.getDay(); i++) {
+        const empty = document.createElement('div');
+        empty.className = 'day-cell other-month';
+        grid.appendChild(empty);
+    }
+
+    // Days in current month
+    const todayStr = getFormatDate(new Date());
+
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+
+        const loopDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), i);
+        const loopDateStr = getFormatDate(loopDate);
+
+        if (loopDateStr === todayStr) {
+            cell.classList.add('today');
+        }
+
+        const num = document.createElement('div');
+        num.className = 'day-number';
+        num.textContent = i;
+        cell.appendChild(num);
+
+        // Check for tasks
+        let taskCount = 0;
+        if (workData[loopDateStr]) {
+            if (workData[loopDateStr].AM) {
+                Object.values(workData[loopDateStr].AM).forEach(arr => taskCount += arr.length);
+            }
+            if (workData[loopDateStr].PM) {
+                Object.values(workData[loopDateStr].PM).forEach(arr => taskCount += arr.length);
+            }
+        }
+
+        if (taskCount > 0) {
+            const indicator = document.createElement('div');
+            indicator.className = 'task-indicator';
+            const dots = Math.min(taskCount, 3);
+            for (let d = 0; d < dots; d++) {
+                const dot = document.createElement('div');
+                dot.className = 'task-dot';
+                indicator.appendChild(dot);
+            }
+            if (taskCount > 3) {
+                const plus = document.createElement('span');
+                plus.textContent = '+';
+                plus.style.fontSize = '8px';
+                plus.style.color = 'var(--text-secondary)';
+                indicator.appendChild(plus);
+            }
+            cell.appendChild(indicator);
+        }
+
+        cell.addEventListener('click', () => {
+            currentDate = new Date(loopDate);
+            // Switch to Day view
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-tab="day-view"]').classList.add('active');
+
+            views.forEach(v => v.classList.remove('active'));
+            document.getElementById('day-view').classList.add('active');
+            currentView = 'day-view';
+            renderDayView();
+        });
+
+        grid.appendChild(cell);
+    }
+}
+
+// ---------------- YEAR VIEW ----------------
+function renderYearView() {
+    document.getElementById('current-year-display').textContent = currentDate.getFullYear();
+
+    const grid = document.getElementById('year-months-grid');
+    grid.innerHTML = '';
+
+    MONTH_NAMES.forEach((month, index) => {
+        const card = document.createElement('div');
+        card.className = 'month-card';
+
+        const h3 = document.createElement('h3');
+        h3.textContent = month;
+        card.appendChild(h3);
+
+        // Calculate tasks in month
+        let monthTaskCount = 0;
+        for (let i = 1; i <= 31; i++) {
+            const checkDateStr = getFormatDate(new Date(currentDate.getFullYear(), index, i));
+            if (workData[checkDateStr]) {
+                if (workData[checkDateStr].AM) {
+                    Object.values(workData[checkDateStr].AM).forEach(arr => monthTaskCount += arr.length);
+                }
+                if (workData[checkDateStr].PM) {
+                    Object.values(workData[checkDateStr].PM).forEach(arr => monthTaskCount += arr.length);
+                }
+            }
+        }
+
+        const p = document.createElement('p');
+        p.textContent = monthTaskCount > 0 ? `${monthTaskCount} task(s)` : 'No tasks';
+        card.appendChild(p);
+
+        card.addEventListener('click', () => {
+            currentDate.setMonth(index);
+            // Switch to Month view
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-tab="month-view"]').classList.add('active');
+
+            views.forEach(v => v.classList.remove('active'));
+            document.getElementById('month-view').classList.add('active');
+            currentView = 'month-view';
+            renderMonthView();
+        });
+
+        grid.appendChild(card);
+    });
+}
+
+// ---------------- THEME TOGGLE ----------------
+const themeToggle = document.getElementById('theme-toggle');
+const sunIcon = document.querySelector('.sun-icon');
+const moonIcon = document.querySelector('.moon-icon');
+
+let currentTheme = localStorage.getItem('WorkflowTheme') || 'dark';
+document.documentElement.setAttribute('data-theme', currentTheme);
+updateThemeIcon();
+
+themeToggle.addEventListener('click', () => {
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    localStorage.setItem('WorkflowTheme', currentTheme);
+    updateThemeIcon();
+});
+
+function updateThemeIcon() {
+    if (currentTheme === 'light') {
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+    } else {
+        sunIcon.style.display = 'block';
+        moonIcon.style.display = 'none';
+    }
+}
+
+// ---------------- BACKGROUND ANIMATION ----------------
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let cw = canvas.width = window.innerWidth;
+let ch = canvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => {
+    cw = canvas.width = window.innerWidth;
+    ch = canvas.height = window.innerHeight;
+});
+
+// Particles for Day
+const particles = [];
+const numParticles = 70;
+for (let i = 0; i < numParticles; i++) {
+    particles.push({
+        x: Math.random() * cw,
+        y: Math.random() * ch,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: (Math.random() - 0.5) * 0.8,
+        radius: Math.random() * 2 + 1
+    });
+}
+
+// Stars for Night
+const stars = [];
+const numStars = 150;
+for (let i = 0; i < numStars; i++) {
+    stars.push({
+        x: Math.random() * cw,
+        y: Math.random() * ch,
+        radius: Math.random() * 1.5 + 0.5,
+        alpha: Math.random()
+    });
+}
+let shootingStar = null;
+
+function animateBg() {
+    // Clear canvas
+    ctx.clearRect(0, 0, cw, ch);
+
+    if (currentTheme === 'light') {
+        // --- DAY MODE: Moving Particles Network ---
+        ctx.lineWidth = 1.2;
+
+        // Update & draw connection lines first so they are behind dots
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                const dx = particles[i].x - particles[j].x;
+                const dy = particles[i].y - particles[j].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < 140) {
+                    ctx.strokeStyle = `rgba(79, 70, 229, ${0.5 * (1 - dist / 140)})`; // primary-color based
+                    ctx.beginPath();
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Draw dots
+        particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+
+            // Bounce off edges
+            if (p.x < 0 || p.x > cw) p.vx *= -1;
+            if (p.y < 0 || p.y > ch) p.vy *= -1;
+
+            ctx.fillStyle = 'rgba(79, 70, 229, 0.7)';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+    } else {
+        // --- NIGHT MODE: Stars & Shooting Stars ---
+        stars.forEach(s => {
+            s.y -= 0.1; // slow drift up
+
+            // Wrap around
+            if (s.y < 0) {
+                s.y = ch;
+                s.x = Math.random() * cw;
+            }
+
+            // Twinkle effect
+            s.alpha += (Math.random() - 0.5) * 0.05;
+            if (s.alpha < 0.2) s.alpha = 0.2;
+            if (s.alpha > 1) s.alpha = 1;
+
+            ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // Handle Shooting Star
+        if (!shootingStar) {
+            // Random chance to spawn a new shooting star
+            if (Math.random() < 0.005) {
+                shootingStar = {
+                    x: Math.random() * cw,
+                    y: 0,
+                    length: Math.random() * 80 + 40, // tail length
+                    speed: Math.random() * 5 + 10,
+                    opacity: 1
+                };
+            }
+        } else {
+            // Draw and update shooting star
+            ctx.strokeStyle = `rgba(255, 255, 255, ${shootingStar.opacity})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(shootingStar.x, shootingStar.y);
+            // Draw a diagonal line up & left
+            ctx.lineTo(shootingStar.x - shootingStar.length, shootingStar.y + shootingStar.length);
+            ctx.stroke();
+
+            // Move it down and right
+            shootingStar.x -= shootingStar.speed;
+            shootingStar.y += shootingStar.speed;
+            shootingStar.opacity -= 0.02; // fade out
+
+            // Reset when invisible
+            if (shootingStar.opacity <= 0) {
+                shootingStar = null;
+            }
+        }
+    }
+
+    // Loop
+    requestAnimationFrame(animateBg);
+}
+
+// Start animation loop
+animateBg();

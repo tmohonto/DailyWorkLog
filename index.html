@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Work Log</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+</head>
+
+<body>
+    <svg width="0" height="0" style="position: absolute;">
+        <defs>
+            <clipPath id="scallop-mask" clipPathUnits="objectBoundingBox">
+                <path
+                    d="M0.5,0.02 C0.58,0.02 0.63,0.06 0.68,0.08 C0.73,0.11 0.81,0.09 0.86,0.14 C0.91,0.19 0.89,0.27 0.92,0.32 C0.94,0.37 0.98,0.42 0.98,0.5 C0.98,0.58 0.94,0.63 0.92,0.68 C0.89,0.73 0.91,0.81 0.86,0.86 C0.81,0.91 0.73,0.89 0.68,0.92 C0.63,0.94 0.58,0.98 0.5,0.98 C0.42,0.98 0.37,0.94 0.32,0.92 C0.27,0.89 0.19,0.91 0.14,0.86 C0.09,0.81 0.11,0.73 0.08,0.68 C0.06,0.63 0.02,0.58 0.02,0.5 C0.02,0.42 0.06,0.37 0.08,0.32 C0.11,0.27 0.09,0.19 0.14,0.14 C0.19,0.09 0.27,0.11 0.32,0.08 C0.37,0.06 0.42,0.02 0.5,0.02 Z">
+                </path>
+            </clipPath>
+        </defs>
+    </svg>
+    <canvas id="bg-canvas"></canvas>
+    <div class="background-animation"></div>
+
+    <div class="app-container">
+        <!-- Header & Navigation -->
+        <header class="glass-panel">
+            <div class="logo">
+                <h1>WorkFlow</h1>
+            </div>
+            <nav class="tabs">
+                <button class="tab-btn active" data-tab="day-view">Day</button>
+                <button class="tab-btn" data-tab="month-view">Month</button>
+                <button class="tab-btn" data-tab="year-view">Year</button>
+            </nav>
+            <div class="header-actions">
+                <button id="theme-toggle" class="icon-btn theme-btn" aria-label="Toggle Theme">
+                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" style="display:none;">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="content-wrapper glass-panel">
+
+            <!-- DAY VIEW -->
+            <section id="day-view" class="view-section active">
+                <div class="view-header">
+                    <button class="icon-btn prev-date">&lt;</button>
+                    <h2 id="current-date-display">Today's Date</h2>
+                    <button class="icon-btn next-date">&gt;</button>
+                </div>
+
+                <!-- Clock & Motivation -->
+                <div class="motivational-banner">
+                    <div class="live-clock" id="live-clock">12:00:00 AM</div>
+                    <div class="motivation-quote" id="motivation-quote">"Loading inspiration..."</div>
+                </div>
+
+                <div class="day-layout">
+                    <div class="day-main">
+                        <div class="ampm-toggle">
+                            <button class="toggle-btn active" data-period="AM">AM</button>
+                            <button class="toggle-btn" data-period="PM">PM</button>
+                        </div>
+
+                        <div id="empty-day-state" class="empty-day-state" style="display: none;">
+                            <div class="empty-icon">☕</div>
+                            <h4>Your schedule is beautifully clear</h4>
+                            <p>Select any open hour below to begin mapping out your workflow.</p>
+                        </div>
+
+                        <div class="schedule-list" id="schedule-list">
+                            <!-- Hours will be generated here by JS -->
+                        </div>
+                    </div>
+
+                    <div class="day-sidebar">
+                        <div class="progress-card glass-panel" id="progress-card-container">
+
+                            <h3 class="widget-title" id="widget-date-display">Date</h3>
+
+                            <div class="material-widget">
+                                <div class="chart-wrapper">
+                                    <div class="chart-outside-text undone-text">
+                                        <span id="chart-undone-count">0</span>
+                                        <small>Undone</small>
+                                    </div>
+
+                                    <div class="progress-chart-container">
+                                        <!-- Thick Google Loading Style Chart -->
+                                        <svg class="progress-svg" viewBox="0 0 200 200">
+                                            <circle class="progress-empty" cx="100" cy="100" r="80"></circle>
+                                            <circle class="progress-undone" cx="100" cy="100" r="80"></circle>
+                                            <circle class="progress-done" id="progress-value-circle" cx="100" cy="100"
+                                                r="80"></circle>
+                                        </svg>
+                                        <div class="progress-text-center">
+                                            <div id="category-pie-chart" class="center-pie-chart"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="chart-outside-text done-text">
+                                        <span id="chart-done-count">0</span>
+                                        <small>Done</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chart-categories-outside">
+                                <div class="chart-cat"><span class="cat-dot cat-dot-urgent"></span><span
+                                        id="chart-urgent" class="color-urgent" style="font-weight:bold;">0
+                                        (0%)</span> <span class="color-urgent">Urgent</span></div>
+                                <div class="chart-cat"><span class="cat-dot cat-dot-work"></span><span id="chart-work"
+                                        class="color-work" style="font-weight:bold;">0 (0%)</span>
+                                    <span class="color-work">Work</span>
+                                </div>
+                                <div class="chart-cat"><span class="cat-dot cat-dot-routine"></span><span
+                                        id="chart-routine" class="color-routine" style="font-weight:bold;">0
+                                        (0%)</span> <span class="color-routine">Routine</span></div>
+                                <div class="chart-cat"><span class="cat-dot cat-dot-personal"></span><span
+                                        id="chart-personal" class="color-personal" style="font-weight:bold;">0
+                                        (0%)</span> <span class="color-personal">Personal</span></div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MONTH VIEW -->
+            <section id="month-view" class="view-section">
+                <div class="view-header">
+                    <button class="icon-btn prev-month">&lt;</button>
+                    <h2 id="current-month-display">Month Year</h2>
+                    <button class="icon-btn next-month">&gt;</button>
+                </div>
+
+                <div class="weekdays-grid">
+                    <div>Sun</div>
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
+                </div>
+                <div class="calendar-grid" id="month-calendar-grid">
+                    <!-- Days will be generated here -->
+                </div>
+            </section>
+
+            <!-- YEAR VIEW -->
+            <section id="year-view" class="view-section">
+                <div class="view-header">
+                    <button class="icon-btn prev-year">&lt;</button>
+                    <h2 id="current-year-display">Year</h2>
+                    <button class="icon-btn next-year">&gt;</button>
+                </div>
+
+                <div class="months-grid" id="year-months-grid">
+                    <!-- Months generated here -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- JS -->
+    <script src="app.js"></script>
+</body>
+
+</html>
