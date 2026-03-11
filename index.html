@@ -69,16 +69,17 @@
 
             <!-- DAY VIEW -->
             <section id="day-view" class="view-section active">
-                <div class="view-header">
-                    <button class="icon-btn prev-date">&lt;</button>
-                    <h2 id="current-date-display">Today's Date</h2>
-                    <button class="icon-btn next-date">&gt;</button>
-                </div>
-
-                <!-- Clock & Motivation -->
-                <div class="motivational-banner">
-                    <div class="live-clock" id="live-clock">12:00:00 AM</div>
-                    <div class="motivation-quote" id="motivation-quote">"Loading inspiration..."</div>
+                <div class="view-header-container">
+                    <div class="view-header">
+                        <button class="icon-btn prev-date">&lt;</button>
+                        <div class="date-time-group">
+                            <span class="live-clock-small" id="live-clock">12:00:00 AM</span>
+                            <span class="date-separator">•</span>
+                            <h2 id="current-date-display">Today's Date</h2>
+                        </div>
+                        <button class="icon-btn next-date">&gt;</button>
+                    </div>
+                    <div class="motivation-quote-small" id="motivation-quote">"Loading inspiration..."</div>
                 </div>
 
                 <div class="day-layout">
