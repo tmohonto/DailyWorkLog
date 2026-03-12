@@ -67,6 +67,13 @@ body {
     min-height: 100vh;
 }
 
+@media (max-width: 600px) {
+    .app-container {
+        padding: 1rem;
+        gap: 1rem;
+    }
+}
+
 #bg-canvas {
     position: fixed;
     top: 0;
@@ -93,6 +100,34 @@ header {
     justify-content: space-between;
     align-items: center;
     padding: 1rem 2rem;
+    gap: 1rem;
+}
+
+@media (max-width: 600px) {
+    header {
+        padding: 0.8rem 1.2rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .logo {
+        width: 100%;
+        text-align: center;
+        order: 1;
+    }
+    
+    .tabs {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .header-actions {
+        order: 2;
+        position: absolute;
+        top: 0.8rem;
+        right: 1.2rem;
+    }
 }
 
 .header-actions {
@@ -141,7 +176,16 @@ header {
 .tab-btn.active {
     background: var(--primary-color);
     color: white;
-    box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+@media (max-width: 600px) {
+    .tab-btn {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+        flex: 1;
+        text-align: center;
+    }
 }
 
 /* Buttons */
@@ -183,6 +227,14 @@ header {
     color: var(--text-primary);
     background: var(--glass-bg-hover);
     transform: scale(1.05);
+}
+
+@media (max-width: 600px) {
+    .icon-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.2rem;
+    }
 }
 
 /* Views Container */
@@ -251,6 +303,24 @@ header {
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
+    min-width: 180px;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .view-header h2 {
+        font-size: 1.1rem;
+        min-width: 140px;
+    }
+    
+    .date-time-group {
+        padding: 0.4rem 0.8rem;
+        gap: 0.5rem;
+    }
+    
+    .live-clock-small {
+        font-size: 1rem;
+    }
 }
 
 .live-clock-small {
@@ -321,6 +391,7 @@ header {
     width: 320px;
     /* Wider to accommodate outside text */
     height: 320px;
+    max-width: 100%;
     clip-path: url(#scallop-mask);
     display: flex;
     flex-direction: column;
@@ -457,11 +528,27 @@ circle {
 }
 
 .center-pie-chart {
-    width: 120px;
-    height: 120px;
+    width: 110px;
+    height: 110px;
     border-radius: 50%;
     background: transparent;
     transition: background 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+    .center-pie-chart {
+        width: 80px;
+        height: 80px;
+    }
+}
+
+.total-tasks-num {
+    display: none;
 }
 
 .progress-text-center .total-tasks-num {
@@ -634,6 +721,12 @@ circle {
     gap: 0.8rem;
 }
 
+@media (max-width: 768px) {
+    .schedule-list {
+        grid-template-columns: 1fr;
+    }
+}
+
 .hour-row {
     display: flex;
     background: rgba(0, 0, 0, 0.08);
@@ -711,6 +804,12 @@ circle {
     position: relative;
     cursor: grab;
     /* For drag and drop */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.task-item:active {
+    cursor: grabbing;
+    transform: scale(0.98);
 }
 
 .task-item:active {
@@ -742,11 +841,19 @@ circle {
     border-left: 4px solid #10b981;
 }
 
+.task-item:hover {
+    background: var(--glass-bg-hover);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 .task-item.done {
     opacity: 0.5;
     text-decoration: line-through;
     background: rgba(0, 0, 0, 0.2) !important;
     border-color: var(--glass-border) !important;
+    transform: none;
 }
 
 .task-checkbox {
@@ -811,9 +918,36 @@ circle {
     border: 1px solid var(--glass-border);
     backdrop-filter: blur(4px);
     align-items: center;
-    flex-wrap: nowrap;
-    /* Changed format to fit single line if possible */
-    overflow-x: auto;
+    flex-wrap: wrap;
+    overflow-x: hidden;
+}
+
+@media (max-width: 600px) {
+    .inline-form {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.8rem;
+        padding: 1rem;
+    }
+    
+    .inline-input {
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.6rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-sm);
+    }
+    
+    .inline-select {
+        width: 100%;
+        max-width: none;
+        padding: 0.6rem;
+    }
+    
+    .inline-btn {
+        padding: 0.8rem;
+        font-size: 1rem;
+    }
 }
 
 .inline-input {
@@ -919,9 +1053,6 @@ circle {
     }
 }
 
-.task-item:hover {
-    background: rgba(99, 102, 241, 0.4);
-}
 
 .empty-slot {
     color: var(--text-muted);
@@ -994,18 +1125,21 @@ circle {
     margin-bottom: 0.3rem;
 }
 
-.task-indicator {
-    display: flex;
-    gap: 3px;
-    flex-wrap: wrap;
-    justify-content: center;
+/* Heatmap Modifiers for Month and Year Views */
+.heatmap-low {
+    background: rgba(16, 185, 129, 0.2) !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
 }
 
-.task-dot {
-    width: 6px;
-    height: 6px;
-    background: var(--accent);
-    border-radius: 50%;
+.heatmap-medium {
+    background: rgba(16, 185, 129, 0.5) !important;
+    border-color: rgba(16, 185, 129, 0.7) !important;
+}
+
+.heatmap-high {
+    background: rgba(16, 185, 129, 0.9) !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3) !important;
 }
 
 /* Months Grid (Year View) */
@@ -1149,62 +1283,91 @@ circle {
 
 /* Responsive */
 @media (max-width: 768px) {
-    header {
-        flex-direction: column;
-        gap: 1.5rem;
+    .view-header-container {
+        margin-bottom: 1.5rem;
     }
 
-    .view-header h2 {
-        font-size: 1.4rem;
-        min-width: 200px;
+    .view-header {
+        gap: 0.8rem;
+        width: 100%;
+        justify-content: space-between;
     }
 
     .day-layout {
         grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
     }
 
     .day-sidebar {
-        position: static;
-        margin-top: 1rem;
-        height: auto;
-        min-height: auto;
+        order: -1; /* Move chart to top on mobile */
+        margin-bottom: 1.5rem;
     }
 
     .progress-card {
-        padding: 1.5rem;
-        gap: 1.5rem;
-    }
-
-    .material-widget {
-        width: 260px;
-        height: 260px;
-    }
-
-    .progress-chart-container {
-        width: 160px;
-        height: 160px;
-        margin-top: 10px;
-    }
-
-    .hour-row {
-        flex-direction: column;
+        padding: 1rem;
         min-height: auto;
     }
 
+    .material-widget {
+        width: 280px;
+        height: 280px;
+        padding: 1.5rem;
+    }
+
+    .chart-wrapper {
+        margin-top: 10px;
+    }
+
+    .progress-chart-container {
+        width: 140px;
+        height: 140px;
+    }
+
+    .hour-row {
+        flex-direction: row; /* Keep it as row but optimize */
+        min-height: 70px;
+    }
+
     .hour-label {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid var(--glass-border);
-        padding: 0.8rem;
-        font-size: 1rem;
+        width: 80px;
+        font-size: 0.8rem;
+        padding: 0.5rem;
     }
 
-    .day-cell {
-        padding: 0.2rem;
+    .hour-tasks {
+        padding: 0.6rem;
     }
 
-    .day-number {
-        font-size: 1rem;
+    .task-item {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .material-widget {
+        width: 240px;
+        height: 240px;
+    }
+    
+    .progress-chart-container {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .chart-outside-text span {
+        font-size: 1.4rem;
+    }
+    
+    .center-pie-chart {
+        width: 80px;
+        height: 80px;
+    }
+
+    .hour-label {
+        width: 70px;
+        font-size: 0.75rem;
     }
 }
 

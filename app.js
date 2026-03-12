@@ -1,7 +1,7 @@
 // State Management
 let currentDate = new Date();
 let currentView = 'day-view';
-let selectedPeriod = 'AM';
+let selectedPeriod = new Date().getHours() >= 12 ? 'PM' : 'AM';
 
 // Constants
 const AM_HOURS = ["6:50-6:59", "7:00-7:59", "8:00-8:59", "9:00-9:59", "10:00-10:59", "11:00-11:59", "12:00-12:59", "1:00-1:59", "2:00-2:59", "3:00-3:59", "4:00-4:59", "5:00-5:59", "6:00-6:49"];
@@ -42,7 +42,68 @@ const scheduleList = document.getElementById('schedule-list');
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
+    initSwipeGestures();
 });
+
+function initSwipeGestures() {
+    let touchstartX = 0;
+    let touchendX = 0;
+    let touchstartY = 0;
+    let touchendY = 0;
+
+    const content = document.querySelector('.content-wrapper');
+
+    content.addEventListener('touchstart', e => {
+        touchstartX = e.changedTouches[0].screenX;
+        touchstartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    content.addEventListener('touchend', e => {
+        touchendX = e.changedTouches[0].screenX;
+        touchendY = e.changedTouches[0].screenY;
+        handleGesture();
+    }, { passive: true });
+
+    function handleGesture() {
+        const dx = touchendX - touchstartX;
+        const dy = touchendY - touchstartY;
+
+        // Ensure vertical scroll isn't swallowed
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+            if (dx > 0) {
+                // Swipe Right -> Previous
+                navigate('prev');
+            } else {
+                // Swipe Left -> Next
+                navigate('next');
+            }
+        }
+    }
+
+    function navigate(dir) {
+        if (currentView === 'day-view') {
+            currentDate.setDate(currentDate.getDate() + (dir === 'next' ? 1 : -1));
+            renderDayView();
+        } else if (currentView === 'month-view') {
+            currentDate.setMonth(currentDate.getMonth() + (dir === 'next' ? 1 : -1));
+            renderMonthView();
+        } else if (currentView === 'year-view') {
+            currentDate.setFullYear(currentDate.getFullYear() + (dir === 'next' ? 1 : -1));
+            renderYearView();
+        }
+        
+        // Add a visual feedback/transition if needed
+        content.style.transition = 'none';
+        content.style.transform = dir === 'next' ? 'translateX(20px)' : 'translateX(-20px)';
+        content.style.opacity = '0.7';
+        
+        setTimeout(() => {
+            content.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+            content.style.transform = 'translateX(0)';
+            content.style.opacity = '1';
+        }, 50);
+    }
+}
 
 tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
@@ -99,6 +160,11 @@ function updateLiveClock() {
 
 // Core Functions
 function initApp() {
+    // Sync AM/PM toggle buttons with the current time period
+    periodToggles.forEach(t => {
+        t.classList.toggle('active', t.dataset.period === selectedPeriod);
+    });
+
     renderCurrentView();
 
     // Set a random motivational quote
@@ -202,6 +268,40 @@ function renderDayView() {
                 const txt = document.createElement('div');
                 txt.className = 'task-text';
                 txt.textContent = task.desc;
+                txt.title = "Double-click to edit";
+
+                txt.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = task.desc;
+                    input.className = 'inline-input';
+                    input.style.width = '100%';
+                    input.style.background = 'rgba(0,0,0,0.2)';
+                    input.style.padding = '4px 8px';
+                    input.style.borderRadius = '4px';
+
+                    const saveEdit = () => {
+                        const newVal = input.value.trim();
+                        if (newVal !== '') {
+                            task.desc = newVal;
+                            saveData();
+                        }
+                        renderDayView();
+                    };
+
+                    input.addEventListener('blur', saveEdit);
+                    input.addEventListener('keydown', (ke) => {
+                        if (ke.key === 'Enter') {
+                            saveEdit();
+                        } else if (ke.key === 'Escape') {
+                            renderDayView();
+                        }
+                    });
+
+                    taskBtn.replaceChild(input, txt);
+                    input.focus();
+                });
 
                 const del = document.createElement('div');
                 del.className = 'task-delete';
@@ -374,7 +474,7 @@ function updateProgressRing() {
     if (emptyStateEl) emptyStateEl.style.display = total === 0 ? 'block' : 'none';
 
     // Center stats
-    const totalEl = document.getElementById('stat-total-center');
+    const totalEl = document.getElementById('chart-total-count');
     if (totalEl) totalEl.textContent = total;
 
     // Helper function to format percentages
@@ -399,6 +499,10 @@ function updateProgressRing() {
     if (wEl) wEl.parentElement.style.display = counts.work > 0 ? 'flex' : 'none';
     if (rEl) rEl.parentElement.style.display = counts.routine > 0 ? 'flex' : 'none';
     if (pEl) pEl.parentElement.style.display = counts.personal > 0 ? 'flex' : 'none';
+    
+    // Total Work display
+    const totalRow = document.getElementById('chart-total-row');
+    if (totalRow) totalRow.style.display = total > 0 ? 'flex' : 'none';
 
     // Outside stats
     const doneEl = document.getElementById('chart-done-count');
@@ -448,7 +552,11 @@ function updateProgressRing() {
             }
         });
 
-        pieChart.style.background = gradientStops.length > 0 ? `conic-gradient(${gradientStops.join(', ')})` : 'transparent';
+        if (gradientStops.length > 0) {
+            pieChart.style.background = `conic-gradient(${gradientStops.join(', ')})`;
+        } else {
+            pieChart.style.background = 'transparent';
+        }
     }
 
     // Tasks > 0: Show colored rings
@@ -537,34 +645,35 @@ function renderMonthView() {
         num.textContent = i;
         cell.appendChild(num);
 
-        // Check for tasks
+        // Check for tasks and completion to build heatmap
         let taskCount = 0;
+        let doneCount = 0;
         if (workData[loopDateStr]) {
-            if (workData[loopDateStr].AM) {
-                Object.values(workData[loopDateStr].AM).forEach(arr => taskCount += arr.length);
-            }
-            if (workData[loopDateStr].PM) {
-                Object.values(workData[loopDateStr].PM).forEach(arr => taskCount += arr.length);
-            }
+            ['AM', 'PM'].forEach(p => {
+                if (workData[loopDateStr][p]) {
+                    Object.values(workData[loopDateStr][p]).forEach(arr => {
+                        arr.forEach(t => {
+                            taskCount++;
+                            if (t.done) doneCount++;
+                        });
+                    });
+                }
+            });
         }
 
         if (taskCount > 0) {
-            const indicator = document.createElement('div');
-            indicator.className = 'task-indicator';
-            const dots = Math.min(taskCount, 3);
-            for (let d = 0; d < dots; d++) {
-                const dot = document.createElement('div');
-                dot.className = 'task-dot';
-                indicator.appendChild(dot);
-            }
-            if (taskCount > 3) {
-                const plus = document.createElement('span');
-                plus.textContent = '+';
-                plus.style.fontSize = '8px';
-                plus.style.color = 'var(--text-secondary)';
-                indicator.appendChild(plus);
-            }
-            cell.appendChild(indicator);
+            const pct = doneCount / taskCount;
+            if (pct === 1) cell.classList.add('heatmap-high');
+            else if (pct >= 0.5) cell.classList.add('heatmap-medium');
+            else cell.classList.add('heatmap-low');
+
+            const ratio = document.createElement('span');
+            ratio.textContent = `${doneCount}/${taskCount}`;
+            ratio.style.fontSize = '11px';
+            ratio.style.opacity = '0.9';
+            ratio.style.marginTop = '4px';
+            ratio.style.fontWeight = 'bold';
+            cell.appendChild(ratio);
         }
 
         cell.addEventListener('click', () => {
@@ -598,22 +707,34 @@ function renderYearView() {
         h3.textContent = month;
         card.appendChild(h3);
 
-        // Calculate tasks in month
+        // Calculate tasks in month for heatmap summary
         let monthTaskCount = 0;
+        let monthDoneCount = 0;
         for (let i = 1; i <= 31; i++) {
             const checkDateStr = getFormatDate(new Date(currentDate.getFullYear(), index, i));
             if (workData[checkDateStr]) {
-                if (workData[checkDateStr].AM) {
-                    Object.values(workData[checkDateStr].AM).forEach(arr => monthTaskCount += arr.length);
-                }
-                if (workData[checkDateStr].PM) {
-                    Object.values(workData[checkDateStr].PM).forEach(arr => monthTaskCount += arr.length);
-                }
+                ['AM', 'PM'].forEach(p => {
+                    if (workData[checkDateStr][p]) {
+                        Object.values(workData[checkDateStr][p]).forEach(arr => {
+                            arr.forEach(t => {
+                                monthTaskCount++;
+                                if (t.done) monthDoneCount++;
+                            });
+                        });
+                    }
+                });
             }
         }
 
+        if (monthTaskCount > 0) {
+            const pct = monthDoneCount / monthTaskCount;
+            if (pct >= 0.8) card.classList.add('heatmap-high');
+            else if (pct >= 0.4) card.classList.add('heatmap-medium');
+            else card.classList.add('heatmap-low');
+        }
+
         const p = document.createElement('p');
-        p.textContent = monthTaskCount > 0 ? `${monthTaskCount} task(s)` : 'No tasks';
+        p.textContent = monthTaskCount > 0 ? `${monthDoneCount}/${monthTaskCount} task(s)` : 'No tasks';
         card.appendChild(p);
 
         card.addEventListener('click', () => {
