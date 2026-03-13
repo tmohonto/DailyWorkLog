@@ -14,16 +14,20 @@ let workData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
 // Migrate old data on load (convert string tasks to objects)
 for (let d in workData) {
-    for (let p in workData[d]) {
-        for (let h in workData[d][p]) {
-            workData[d][p][h] = workData[d][p][h].map(task => {
-                if (typeof task === 'string') {
-                    return { desc: task, category: 'routine', done: false, id: Date.now() + Math.random() };
+    ['AM', 'PM'].forEach(p => {
+        if (workData[d][p]) {
+            for (let h in workData[d][p]) {
+                if (Array.isArray(workData[d][p][h])) {
+                    workData[d][p][h] = workData[d][p][h].map(task => {
+                        if (typeof task === 'string') {
+                            return { desc: task, category: 'routine', done: false, id: Date.now() + Math.random() };
+                        }
+                        return task;
+                    });
                 }
-                return task;
-            });
+            }
         }
-    }
+    });
 }
 saveData();
 
@@ -33,17 +37,57 @@ function saveData() {
 
 let activeInlineInput = null; // Track where the user is currently typing
 
-// DOM Elements
 const tabs = document.querySelectorAll('.tab-btn');
 const views = document.querySelectorAll('.view-section');
 const periodToggles = document.querySelectorAll('.toggle-btn');
 const scheduleList = document.getElementById('schedule-list');
+const expensesSection = document.getElementById('expenses-section');
+const showExpensesBtn = document.getElementById('show-expenses');
+const ampmToggle = document.querySelector('.ampm-toggle');
+const expenseForm = document.getElementById('expense-form');
+const expensesList = document.getElementById('expenses-list');
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     initSwipeGestures();
+    
+    if (showExpensesBtn) {
+        showExpensesBtn.addEventListener('click', () => {
+            currentDayMode = 'expenses';
+            renderDayView();
+        });
+    }
+
+    const editBudgetBtn = document.getElementById('edit-budget-btn');
+    if (editBudgetBtn) {
+        editBudgetBtn.addEventListener('click', () => {
+            const currentBudget = localStorage.getItem('WorkflowBudget') || 500;
+            const newBudget = prompt("Set your daily budget (৳):", currentBudget);
+            if (newBudget !== null && !isNaN(newBudget) && newBudget.trim() !== "") {
+                localStorage.setItem('WorkflowBudget', parseFloat(newBudget));
+                updateProgressRing();
+            }
+        });
+    }
+
+    if (expenseForm) {
+        expenseForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const desc = document.getElementById('expense-desc').value.trim();
+            const amount = parseFloat(document.getElementById('expense-amount').value);
+            const category = document.getElementById('expense-category').value;
+            const timeSlot = document.getElementById('expense-time').value;
+
+            if (desc && !isNaN(amount) && timeSlot) {
+                addExpense(desc, amount, category, timeSlot);
+                expenseForm.reset();
+            }
+        });
+    }
 });
+
+let currentDayMode = 'schedule'; // 'schedule' or 'expenses'
 
 function initSwipeGestures() {
     let touchstartX = 0;
@@ -123,6 +167,10 @@ tabs.forEach(tab => {
 
 periodToggles.forEach(toggle => {
     toggle.addEventListener('click', (e) => {
+        // Skip if it's the specific expenses button (handled in DOMContentLoaded)
+        if (toggle.id === 'show-expenses') return;
+        
+        currentDayMode = 'schedule';
         periodToggles.forEach(t => t.classList.remove('active'));
         e.target.classList.add('active');
         selectedPeriod = e.target.dataset.period;
@@ -182,6 +230,24 @@ function initApp() {
             updateCurrentTimeHighlight();
         }
     }, 60000);
+
+    // Populate Expense Tab Time Slots
+    const expenseTimeSelect = document.getElementById('expense-time');
+    if (expenseTimeSelect) {
+        expenseTimeSelect.innerHTML = '<option value="" disabled selected>Pick Time Slot</option>';
+        AM_HOURS.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h + ' AM';
+            opt.textContent = h + ' AM';
+            expenseTimeSelect.appendChild(opt);
+        });
+        PM_HOURS.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h + ' PM';
+            opt.textContent = h + ' PM';
+            expenseTimeSelect.appendChild(opt);
+        });
+    }
 }
 
 function renderCurrentView() {
@@ -198,6 +264,7 @@ function getFormatDate(dateObj) {
 }
 
 // ---------------- DAY VIEW ----------------
+// ---------------- DAY VIEW ----------------
 function renderDayView() {
     // Header
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -206,174 +273,275 @@ function renderDayView() {
     const shortOptions = { weekday: 'short', day: 'numeric' };
     document.getElementById('widget-date-display').textContent = currentDate.toLocaleDateString(undefined, shortOptions);
 
-    // List
-    scheduleList.innerHTML = '';
-    const hours = selectedPeriod === 'AM' ? AM_HOURS : PM_HOURS;
-    const dateStr = getFormatDate(currentDate);
+    // Mode switching
+    if (currentDayMode === 'expenses') {
+        scheduleList.style.display = 'none';
+        expensesSection.style.display = 'flex';
+        ampmToggle.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        showExpensesBtn.classList.add('active');
+        renderExpensesView();
+    } else {
+        scheduleList.style.display = 'grid';
+        expensesSection.style.display = 'none';
+        showExpensesBtn.classList.remove('active');
+        ampmToggle.querySelectorAll('.toggle-btn').forEach(b => {
+             b.classList.toggle('active', b.dataset.period === selectedPeriod);
+        });
+        
+        // List rendering
+        scheduleList.innerHTML = '';
+        const hours = selectedPeriod === 'AM' ? AM_HOURS : PM_HOURS;
+        const dateStr = getFormatDate(currentDate);
 
-    hours.forEach(hour => {
-        const row = document.createElement('div');
-        row.className = 'hour-row';
-
-        const label = document.createElement('div');
-        label.className = 'hour-label';
-        label.textContent = `${hour} ${selectedPeriod}`;
-        row.appendChild(label);
-
-        const tasksContainer = document.createElement('div');
-        tasksContainer.className = 'hour-tasks';
-
-        const currentTasks = workData[dateStr]?.[selectedPeriod]?.[hour] || [];
-
-        if (currentTasks.length === 0) {
-            if (activeInlineInput === hour) {
-                renderInlineInput(tasksContainer, dateStr, hour);
-            } else {
-                const empty = document.createElement('div');
-                empty.className = 'empty-slot';
-                empty.textContent = '+ Add work';
-                empty.title = "Click to add work to this hour";
-                empty.addEventListener('click', () => {
-                    activeInlineInput = hour;
-                    renderDayView();
-                });
-                tasksContainer.appendChild(empty);
+        hours.forEach(hour => {
+            const row = document.createElement('div');
+            row.className = 'hour-row';
+            
+            // Highlight current time if applicable
+            const now = new Date();
+            if (getFormatDate(now) === dateStr) {
+                const hourNum = now.getHours();
+                const isAm = hourNum < 12;
+                const displayAm = isAm ? (hourNum === 0 ? 12 : hourNum) : (hourNum === 12 ? 12 : hourNum - 12);
+                if (selectedPeriod === (isAm ? 'AM' : 'PM') && hour.startsWith(displayAm + ':')) {
+                    row.classList.add('current-time-slot');
+                }
             }
-        } else {
-            currentTasks.forEach((task, index) => {
-                const taskBtn = document.createElement('div');
-                taskBtn.className = `task-item cat-${task.category} ${task.done ? 'done' : ''}`;
 
-                const cb = document.createElement('div');
-                cb.className = `task-checkbox ${task.done ? 'done' : ''}`;
-                cb.title = "Toggle Completion";
-                cb.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    task.done = !task.done;
+            const label = document.createElement('div');
+            label.className = 'hour-label';
+            label.textContent = `${hour} ${selectedPeriod}`;
+            row.appendChild(label);
 
-                    if (task.done && typeof confetti === 'function') {
-                        // Trigger satisfying confetti micro-interaction
-                        confetti({
-                            particleCount: 80,
-                            spread: 60,
-                            colors: ['#10b981', '#38bdf8', '#f43f5e', '#6366f1'],
-                            origin: { y: 0.6 }
-                        });
-                    }
+            const tasksContainer = document.createElement('div');
+            tasksContainer.className = 'hour-tasks';
 
-                    saveData();
-                    renderDayView();
-                });
+            const currentTasks = workData[dateStr]?.[selectedPeriod]?.[hour] || [];
 
-                const txt = document.createElement('div');
-                txt.className = 'task-text';
-                txt.textContent = task.desc;
-                txt.title = "Double-click to edit";
-
-                txt.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.value = task.desc;
-                    input.className = 'inline-input';
-                    input.style.width = '100%';
-                    input.style.background = 'rgba(0,0,0,0.2)';
-                    input.style.padding = '4px 8px';
-                    input.style.borderRadius = '4px';
-
-                    const saveEdit = () => {
-                        const newVal = input.value.trim();
-                        if (newVal !== '') {
-                            task.desc = newVal;
-                            saveData();
-                        }
+            if (currentTasks.length === 0) {
+                if (activeInlineInput === hour) {
+                    renderInlineInput(tasksContainer, dateStr, hour);
+                } else {
+                    const empty = document.createElement('div');
+                    empty.className = 'empty-slot';
+                    empty.textContent = '+ Add work';
+                    empty.title = "Click to add work to this hour";
+                    empty.addEventListener('click', () => {
+                        activeInlineInput = hour;
                         renderDayView();
-                    };
+                    });
+                    tasksContainer.appendChild(empty);
+                }
+            } else {
+                currentTasks.forEach((task, index) => {
+                    const taskBtn = document.createElement('div');
+                    taskBtn.className = `task-item cat-${task.category} ${task.done ? 'done' : ''}`;
 
-                    input.addEventListener('blur', saveEdit);
-                    input.addEventListener('keydown', (ke) => {
-                        if (ke.key === 'Enter') {
-                            saveEdit();
-                        } else if (ke.key === 'Escape') {
+                    const cb = document.createElement('div');
+                    cb.className = `task-checkbox ${task.done ? 'done' : ''}`;
+                    cb.title = "Toggle Completion";
+                    cb.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        task.done = !task.done;
+                        if (task.done && typeof confetti === 'function') {
+                            confetti({
+                                particleCount: 80,
+                                spread: 60,
+                                colors: ['#10b981', '#38bdf8', '#f43f5e', '#6366f1'],
+                                origin: { y: 0.6 }
+                            });
+                        }
+                        saveData();
+                        renderDayView();
+                    });
+
+                    const txt = document.createElement('div');
+                    txt.className = 'task-text';
+                    txt.innerHTML = `${task.desc} ${task.amount ? `<span class="task-amount-tag">৳${task.amount.toFixed(2)}</span>` : ''}`;
+                    txt.title = "Double-click to edit";
+
+                    txt.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = task.desc;
+                        input.className = 'inline-input';
+                        input.style.width = '100%';
+                        input.style.background = 'rgba(0,0,0,0.2)';
+                        input.style.padding = '4px 8px';
+                        input.style.borderRadius = '4px';
+
+                        const saveEdit = () => {
+                            const newVal = input.value.trim();
+                            if (newVal !== '') {
+                                task.desc = newVal;
+                                saveData();
+                            }
+                            renderDayView();
+                        };
+
+                        input.addEventListener('blur', saveEdit);
+                        input.addEventListener('keydown', (ke) => {
+                            if (ke.key === 'Enter') saveEdit();
+                            else if (ke.key === 'Escape') renderDayView();
+                        });
+
+                        taskBtn.replaceChild(input, txt);
+                        input.focus();
+                    });
+
+                    const del = document.createElement('div');
+                    del.className = 'task-delete';
+                    del.innerHTML = '&times;';
+                    del.title = "Delete Task";
+                    del.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Remove this work: "${task.desc}"?`)) {
+                            workData[dateStr][selectedPeriod][hour].splice(index, 1);
+                            saveData();
                             renderDayView();
                         }
                     });
 
-                    taskBtn.replaceChild(input, txt);
-                    input.focus();
+                    taskBtn.appendChild(cb);
+                    taskBtn.appendChild(txt);
+                    taskBtn.appendChild(del);
+                    tasksContainer.appendChild(taskBtn);
                 });
 
-                const del = document.createElement('div');
-                del.className = 'task-delete';
-                del.innerHTML = '&times;';
-                del.title = "Delete Task";
-                del.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (confirm(`Remove this work: "${task.desc}"?`)) {
-                        workData[dateStr][selectedPeriod][hour].splice(index, 1);
+                if (activeInlineInput === hour) {
+                    renderInlineInput(tasksContainer, dateStr, hour);
+                } else {
+                    const addMore = document.createElement('div');
+                    addMore.innerHTML = '&#43;';
+                    addMore.style.cursor = 'pointer';
+                    addMore.style.color = 'var(--text-secondary)';
+                    addMore.style.padding = '0.5rem';
+                    addMore.title = "Add another task";
+                    addMore.addEventListener('click', () => {
+                        activeInlineInput = hour;
+                        renderDayView();
+                    });
+                    tasksContainer.appendChild(addMore);
+                }
+            }
+
+            row.appendChild(tasksContainer);
+            scheduleList.appendChild(row);
+
+            if (typeof Sortable !== 'undefined') {
+                tasksContainer.dataset.hour = hour;
+                new Sortable(tasksContainer, {
+                    group: 'shared',
+                    animation: 150,
+                    draggable: '.task-item',
+                    onEnd: function (evt) {
+                        const fromHour = evt.from.dataset.hour;
+                        const toHour = evt.to.dataset.hour;
+                        if (!fromHour || !toHour) return;
+                        const movedTask = workData[dateStr][selectedPeriod][fromHour].splice(evt.oldDraggableIndex, 1)[0];
+                        if (!workData[dateStr][selectedPeriod][toHour]) workData[dateStr][selectedPeriod][toHour] = [];
+                        workData[dateStr][selectedPeriod][toHour].splice(evt.newDraggableIndex, 0, movedTask);
                         saveData();
                         renderDayView();
                     }
                 });
-
-                taskBtn.appendChild(cb);
-                taskBtn.appendChild(txt);
-                taskBtn.appendChild(del);
-
-                tasksContainer.appendChild(taskBtn);
-            });
-
-            if (activeInlineInput === hour) {
-                renderInlineInput(tasksContainer, dateStr, hour);
-            } else {
-                // Mini add button next to tasks
-                const addMore = document.createElement('div');
-                addMore.innerHTML = '&#43;';
-                addMore.style.cursor = 'pointer';
-                addMore.style.color = 'var(--text-secondary)';
-                addMore.style.padding = '0.5rem';
-                addMore.title = "Add another task";
-                addMore.addEventListener('click', () => {
-                    activeInlineInput = hour;
-                    renderDayView();
-                });
-                tasksContainer.appendChild(addMore);
             }
-        }
+        });
+    }
 
-        row.appendChild(tasksContainer);
-        scheduleList.appendChild(row);
+    updateProgressRing();
+    updateCurrentTimeHighlight();
+}
 
-        // Add Drag and Drop via SortableJS
-        if (typeof Sortable !== 'undefined') {
-            tasksContainer.dataset.hour = hour;
-            new Sortable(tasksContainer, {
-                group: 'shared',
-                animation: 150,
-                draggable: '.task-item',
-                onEnd: function (evt) {
-                    const fromHour = evt.from.dataset.hour;
-                    const toHour = evt.to.dataset.hour;
-
-                    if (!fromHour || !toHour) return;
-
-                    const movedTask = workData[dateStr][selectedPeriod][fromHour].splice(evt.oldDraggableIndex, 1)[0];
-
-                    if (!workData[dateStr][selectedPeriod][toHour]) {
-                        workData[dateStr][selectedPeriod][toHour] = [];
+// ---------------- EXPENSES ----------------
+function renderExpensesView() {
+    expensesList.innerHTML = '';
+    const dateStr = getFormatDate(currentDate);
+    const dayData = workData[dateStr] || {};
+    const manualExpenses = dayData.expenses || [];
+    
+    // Collect task-based expenses
+    let taskExpenses = [];
+    ['AM', 'PM'].forEach(p => {
+        if (dayData[p]) {
+            Object.keys(dayData[p]).forEach(hour => {
+                dayData[p][hour].forEach(t => {
+                    if (t.amount && t.amount > 0) {
+                        taskExpenses.push({
+                            desc: t.desc,
+                            amount: t.amount,
+                            category: t.category,
+                            id: t.id,
+                            isTask: true
+                        });
                     }
-
-                    workData[dateStr][selectedPeriod][toHour].splice(evt.newDraggableIndex, 0, movedTask);
-
-                    saveData();
-                    renderDayView();
-                }
+                });
             });
         }
     });
 
-    updateProgressRing();
-    updateCurrentTimeHighlight();
+    const allExpenses = [...manualExpenses, ...taskExpenses].sort((a,b) => b.id - a.id);
+
+    if (allExpenses.length === 0) {
+        expensesList.innerHTML = '<div class="empty-day-state"><div class="empty-icon">💸</div><h4>No expenses logged for today.</h4></div>';
+    } else {
+        allExpenses.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'expense-item';
+            div.innerHTML = `
+                <div class="expense-info">
+                    <span class="expense-name">${item.category ? `<span class="cat-dot cat-dot-${item.category}"></span>` : ''}${item.desc}</span>
+                    <span class="expense-date">${new Date(item.id).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                </div>
+                <div class="expense-amount-group">
+                    <span class="expense-value">৳${item.amount.toFixed(2)}</span>
+                    ${item.isTask ? '' : `<span class="expense-delete" onclick="deleteExpense(${manualExpenses.indexOf(item)})">×</span>`}
+                </div>
+            `;
+            expensesList.appendChild(div);
+        });
+    }
+}
+
+function addExpense(desc, amount, category = 'personal', timeSlotStr = '') {
+    const dateStr = getFormatDate(currentDate);
+    
+    // If a time slot is provided, sync it to the Work Log (AM/PM tabs)
+    if (timeSlotStr) {
+        const parts = timeSlotStr.split(' '); // e.g. ["7:00-7:59", "AM"]
+        const hourSlot = parts[0];
+        const period = parts[1];
+
+        if (!workData[dateStr]) workData[dateStr] = { AM: {}, PM: {} };
+        if (!workData[dateStr][period]) workData[dateStr][period] = {};
+        if (!workData[dateStr][period][hourSlot]) workData[dateStr][period][hourSlot] = [];
+
+        workData[dateStr][period][hourSlot].push({
+            desc: desc,
+            category: category,
+            done: false,
+            amount: amount,
+            id: Date.now()
+        });
+    } else {
+        // Fallback for manual legacy expenses if needed (though UI now requires time)
+        if (!workData[dateStr]) workData[dateStr] = {};
+        if (!workData[dateStr].expenses) workData[dateStr].expenses = [];
+        workData[dateStr].expenses.push({ id: Date.now(), desc, amount });
+    }
+
+    saveData();
+    renderDayView();
+}
+
+function deleteExpense(index) {
+    const dateStr = getFormatDate(currentDate);
+    if (workData[dateStr] && workData[dateStr].expenses) {
+        workData[dateStr].expenses.splice(index, 1);
+        saveData();
+        renderDayView();
+    }
 }
 
 function renderInlineInput(container, dateStr, hour) {
@@ -398,6 +566,13 @@ function renderInlineInput(container, dateStr, hour) {
         <option value="personal">🟢 Personal</option>
     `;
 
+    const amountInput = document.createElement('input');
+    amountInput.type = 'number';
+    amountInput.className = 'inline-input';
+    amountInput.placeholder = '৳0.00';
+    amountInput.step = '0.01';
+    amountInput.style.maxWidth = '80px';
+
     const saveBtn = document.createElement('button');
     saveBtn.type = 'submit';
     saveBtn.className = 'inline-btn';
@@ -415,10 +590,12 @@ function renderInlineInput(container, dateStr, hour) {
 
     form.addEventListener('submit', (e) => {
         e.preventDefault();
-        saveInlineTask(dateStr, selectedPeriod, hour, input.value, select.value);
+        const amt = parseFloat(amountInput.value) || 0;
+        saveInlineTask(dateStr, selectedPeriod, hour, input.value, select.value, amt);
     });
 
     form.appendChild(input);
+    form.appendChild(amountInput);
     form.appendChild(select);
     form.appendChild(saveBtn);
     form.appendChild(cancelBtn);
@@ -430,12 +607,18 @@ function renderInlineInput(container, dateStr, hour) {
     setTimeout(() => input.focus(), 10);
 }
 
-function saveInlineTask(dateStr, period, hour, desc, category) {
+function saveInlineTask(dateStr, period, hour, desc, category, amount = 0) {
     if (!workData[dateStr]) workData[dateStr] = { AM: {}, PM: {} };
     if (!workData[dateStr][period]) workData[dateStr][period] = {};
     if (!workData[dateStr][period][hour]) workData[dateStr][period][hour] = [];
 
-    workData[dateStr][period][hour].push({ desc, category, done: false, id: Date.now() });
+    workData[dateStr][period][hour].push({
+        desc,
+        category,
+        done: false,
+        amount: amount,
+        id: Date.now()
+    });
     saveData();
     activeInlineInput = null;
     renderCurrentView();
@@ -509,6 +692,45 @@ function updateProgressRing() {
     if (doneEl) doneEl.textContent = done;
     const undoneEl = document.getElementById('chart-undone-count');
     if (undoneEl) undoneEl.textContent = undone;
+
+    // Expenses Total Cost
+    const totalCostEl = document.getElementById('chart-total-cost');
+    if (totalCostEl) {
+        const todayStr = getFormatDate(currentDate);
+        const dData = workData[todayStr] || {};
+        
+        // Manual expenses
+        const manualTotal = (dData.expenses || []).reduce((sum, item) => sum + item.amount, 0);
+        
+        // Task-based expenses
+        let taskTotal = 0;
+        ['AM', 'PM'].forEach(p => {
+            if (dData[p]) {
+                Object.values(dData[p]).forEach(arr => {
+                    arr.forEach(t => {
+                        if (t.amount) taskTotal += t.amount;
+                    });
+                });
+            }
+        });
+
+        const totalExposed = manualTotal + taskTotal;
+        totalCostEl.textContent = totalExposed.toFixed(2);
+
+        // Budget Comparison
+        const dailyBudget = parseFloat(localStorage.getItem('WorkflowBudget')) || 500;
+        const budgetValEl = document.getElementById('chart-budget-value');
+        if (budgetValEl) budgetValEl.textContent = dailyBudget;
+
+        const sidebarPanel = document.querySelector('.day-sidebar');
+        if (sidebarPanel) {
+            if (totalExposed > dailyBudget) {
+                sidebarPanel.classList.add('over-budget');
+            } else {
+                sidebarPanel.classList.remove('over-budget');
+            }
+        }
+    }
 
     const svgEl = document.querySelector('.progress-svg');
     const circleDone = document.getElementById('progress-value-circle'); // green
