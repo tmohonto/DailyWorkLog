@@ -39,7 +39,7 @@ let activeInlineInput = null; // Track where the user is currently typing
 
 const tabs = document.querySelectorAll('.tab-btn');
 const views = document.querySelectorAll('.view-section');
-const periodToggles = document.querySelectorAll('.toggle-btn');
+const periodToggles = document.querySelectorAll('.ampm-toggle .toggle-btn');
 const scheduleList = document.getElementById('schedule-list');
 const expensesSection = document.getElementById('expenses-section');
 const showExpensesBtn = document.getElementById('show-expenses');
@@ -167,13 +167,10 @@ tabs.forEach(tab => {
 
 periodToggles.forEach(toggle => {
     toggle.addEventListener('click', (e) => {
-        // Skip if it's the specific expenses button (handled in DOMContentLoaded)
-        if (toggle.id === 'show-expenses') return;
-        
         currentDayMode = 'schedule';
         periodToggles.forEach(t => t.classList.remove('active'));
-        e.target.classList.add('active');
-        selectedPeriod = e.target.dataset.period;
+        toggle.classList.add('active');
+        selectedPeriod = toggle.dataset.period;
         renderDayView();
     });
 });
@@ -287,6 +284,10 @@ function renderDayView() {
         ampmToggle.querySelectorAll('.toggle-btn').forEach(b => {
              b.classList.toggle('active', b.dataset.period === selectedPeriod);
         });
+
+        // Hide empty state if in expenses mode
+        const emptyStateEl = document.getElementById('empty-day-state');
+        if (emptyStateEl) emptyStateEl.style.display = 'none';
         
         // List rendering
         scheduleList.innerHTML = '';
@@ -595,10 +596,31 @@ function renderInlineInput(container, dateStr, hour) {
     });
 
     form.appendChild(input);
-    form.appendChild(amountInput);
-    form.appendChild(select);
-    form.appendChild(saveBtn);
-    form.appendChild(cancelBtn);
+    
+    const row2 = document.createElement('div');
+    row2.style.display = 'flex';
+    row2.style.gap = '8px';
+    row2.style.width = '100%';
+    
+    amountInput.style.flex = '1';
+    amountInput.style.maxWidth = 'none';
+    
+    select.style.flex = '2';
+
+    row2.appendChild(amountInput);
+    row2.appendChild(select);
+    form.appendChild(row2);
+
+    const btnRow = document.createElement('div');
+    btnRow.style.display = 'flex';
+    btnRow.style.gap = '8px';
+    btnRow.style.width = '100%';
+    saveBtn.style.flex = '1';
+    cancelBtn.style.flex = '1';
+    
+    btnRow.appendChild(saveBtn);
+    btnRow.appendChild(cancelBtn);
+    form.appendChild(btnRow);
     wrap.appendChild(form);
 
     container.appendChild(wrap);
@@ -654,7 +676,9 @@ function updateProgressRing() {
 
     // Empty state logic
     const emptyStateEl = document.getElementById('empty-day-state');
-    if (emptyStateEl) emptyStateEl.style.display = total === 0 ? 'block' : 'none';
+    if (emptyStateEl) {
+        emptyStateEl.style.display = (total === 0 && currentDayMode === 'schedule') ? 'block' : 'none';
+    }
 
     // Center stats
     const totalEl = document.getElementById('chart-total-count');
