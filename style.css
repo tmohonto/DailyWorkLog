@@ -148,15 +148,16 @@ header {
 }
 
 .logo h1 {
-    font-size: 1.8rem;
-    letter-spacing: -1px;
+    font-size: 2rem;
+    letter-spacing: -1.5px;
     text-transform: uppercase;
-    font-weight: 800;
+    font-weight: 900;
+    margin: 0;
 }
 
 @media (max-width: 600px) {
     header {
-        padding: calc(2rem + env(safe-area-inset-top)) 1rem 1rem 1rem;
+        padding: calc(3rem + env(safe-area-inset-top)) 1rem 1rem 1rem;
         background: transparent;
         border: none;
         box-shadow: none;
@@ -164,6 +165,10 @@ header {
     
     .mobile-only { display: flex !important; }
     .desktop-only { display: none !important; }
+
+    .logo h1 {
+        font-size: 1.8rem;
+    }
 }
 
 /* Bottom Nav Bar */
@@ -295,22 +300,25 @@ header {
 .icon-btn {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    color: var(--text-secondary);
+    color: var(--text-primary);
     border-radius: 50%;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-weight: bold;
     transition: var(--transition);
+    overflow: hidden;
 }
 
 .icon-btn:hover {
-    color: var(--text-primary);
     background: var(--glass-bg-hover);
     transform: scale(1.05);
+}
+
+.theme-toggle svg {
+    pointer-events: none;
 }
 
 @media (max-width: 600px) {

@@ -1034,11 +1034,11 @@ themeToggles.forEach(toggle => {
 
 function updateThemeIcon() {
     if (currentTheme === 'light') {
-        sunIcons.forEach(i => i.style.display = 'none');
-        moonIcons.forEach(i => i.style.display = 'block');
-    } else {
         sunIcons.forEach(i => i.style.display = 'block');
         moonIcons.forEach(i => i.style.display = 'none');
+    } else {
+        sunIcons.forEach(i => i.style.display = 'none');
+        moonIcons.forEach(i => i.style.display = 'block');
     }
 }
 
