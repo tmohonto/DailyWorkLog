@@ -71,12 +71,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const refreshBtn = document.getElementById('refresh-app');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
+    const refreshBtns = document.querySelectorAll('.refresh-app');
+    refreshBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
             window.location.reload();
         });
-    }
+    });
 
     if (expenseForm) {
         expenseForm.addEventListener('submit', (e) => {
@@ -158,10 +158,13 @@ function initSwipeGestures() {
 
 tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
-        tabs.forEach(t => t.classList.remove('active'));
-        e.target.classList.add('active');
+        const targetView = e.currentTarget.dataset.tab;
+        
+        // Sync all tab buttons (desktop + mobile)
+        tabs.forEach(t => {
+            t.classList.toggle('active', t.dataset.tab === targetView);
+        });
 
-        const targetView = e.target.dataset.tab;
         views.forEach(v => {
             v.classList.remove('active');
             if (v.id === targetView) v.classList.add('active');
@@ -169,6 +172,11 @@ tabs.forEach(tab => {
 
         currentView = targetView;
         renderCurrentView();
+        
+        // On mobile, scroll to top when changing view
+        if (window.innerWidth < 600) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     });
 });
 
@@ -1007,28 +1015,30 @@ function renderYearView() {
 }
 
 // ---------------- THEME TOGGLE ----------------
-const themeToggle = document.getElementById('theme-toggle');
-const sunIcon = document.querySelector('.sun-icon');
-const moonIcon = document.querySelector('.moon-icon');
+const themeToggles = document.querySelectorAll('.theme-toggle');
+const sunIcons = document.querySelectorAll('.sun-icon');
+const moonIcons = document.querySelectorAll('.moon-icon');
 
 let currentTheme = localStorage.getItem('WorkflowTheme') || 'dark';
 document.documentElement.setAttribute('data-theme', currentTheme);
 updateThemeIcon();
 
-themeToggle.addEventListener('click', () => {
-    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', currentTheme);
-    localStorage.setItem('WorkflowTheme', currentTheme);
-    updateThemeIcon();
+themeToggles.forEach(toggle => {
+    toggle.addEventListener('click', () => {
+        currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        localStorage.setItem('WorkflowTheme', currentTheme);
+        updateThemeIcon();
+    });
 });
 
 function updateThemeIcon() {
     if (currentTheme === 'light') {
-        sunIcon.style.display = 'none';
-        moonIcon.style.display = 'block';
+        sunIcons.forEach(i => i.style.display = 'none');
+        moonIcons.forEach(i => i.style.display = 'block');
     } else {
-        sunIcon.style.display = 'block';
-        moonIcon.style.display = 'none';
+        sunIcons.forEach(i => i.style.display = 'block');
+        moonIcons.forEach(i => i.style.display = 'none');
     }
 }
 
