@@ -1,9 +1,9 @@
 :root {
-    /* Midnight Premium Theme */
+    /* Midnight Premium Theme - DARK */
     --bg-gradient: linear-gradient(180deg, #000000 0%, #0a0a0c 100%);
-    --glass-bg: rgba(20, 20, 23, 0.7);
-    --glass-bg-hover: rgba(30, 30, 35, 0.9);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-bg: rgba(20, 20, 20, 0.7);
+    --glass-bg-hover: rgba(40, 40, 45, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.1);
     --input-bg: #050505;
     --primary-color: #6366f1;
     --primary-hover: #818cf8;
@@ -108,68 +108,48 @@ body {
 }
 
 /* Header */
+/* Desktop Header Styles */
 header {
     display: flex;
-    justify-content: center; /* Center logo on desktop by default */
+    justify-content: space-between;
     align-items: center;
-    padding: calc(1.5rem + env(safe-area-inset-top)) 2rem 1.5rem 2rem;
+    padding: 1.5rem 3rem;
     position: relative;
     z-index: 1000;
-}
-
-@media (max-width: 600px) {
-    header {
-        padding: calc(1rem + env(safe-area-inset-top)) 1rem 1.2rem 1rem;
-        flex-direction: column;
-        gap: 1.2rem;
-        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-    }
-    
-    .logo {
-        width: 100%;
-        text-align: center;
-        padding-top: 0.5rem;
-    }
-    
-    .tabs {
-        width: 100%;
-        justify-content: center;
-        padding: 0.3rem;
-    }
-    
-    .header-actions {
-        position: absolute;
-        top: calc(1rem + env(safe-area-inset-top));
-        right: 1.2rem;
-        z-index: 1001; 
-        display: flex;
-        gap: 0.8rem;
-    }
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .logo h1 {
-    font-size: 2rem;
-    letter-spacing: -1.5px;
+    font-size: 1.6rem;
+    letter-spacing: -0.5px;
     text-transform: uppercase;
-    font-weight: 900;
-    margin: 0;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
+/* Mobile Adjustments */
 @media (max-width: 600px) {
     header {
-        padding: calc(3rem + env(safe-area-inset-top)) 1rem 1rem 1rem;
+        padding: calc(1.5rem + env(safe-area-inset-top)) 1rem 1rem 1rem;
+        justify-content: center;
         background: transparent;
         border: none;
-        box-shadow: none;
     }
-    
-    .mobile-only { display: flex !important; }
-    .desktop-only { display: none !important; }
 
-    .logo h1 {
-        font-size: 1.8rem;
+    .desktop-only {
+        display: none !important;
+    }
+
+    .mobile-only {
+        display: flex !important;
     }
 }
+
+/* Removing redundant media queries */
 
 /* Bottom Nav Bar */
 .bottom-nav {
@@ -309,16 +289,19 @@ header {
     justify-content: center;
     cursor: pointer;
     transition: var(--transition);
-    overflow: hidden;
+    padding: 0;
+}
+
+.icon-btn svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
 }
 
 .icon-btn:hover {
     background: var(--glass-bg-hover);
-    transform: scale(1.05);
-}
-
-.theme-toggle svg {
-    pointer-events: none;
+    transform: translateY(-2px);
 }
 
 @media (max-width: 600px) {
