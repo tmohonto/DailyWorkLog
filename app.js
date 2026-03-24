@@ -4,13 +4,13 @@ let currentView = 'day-view';
 let selectedPeriod = new Date().getHours() >= 12 ? 'PM' : 'AM';
 
 // Constants
-const AM_HOURS = ["6:50-6:59", "7:00-7:59", "8:00-8:59", "9:00-9:59", "10:00-10:59", "11:00-11:59", "12:00-12:59", "1:00-1:59", "2:00-2:59", "3:00-3:59", "4:00-4:59", "5:00-5:59", "6:00-6:49"];
-const PM_HOURS = ["12:00-12:59", "1:00-1:59", "2:00-2:59", "3:00-3:59", "4:00-4:59", "5:00-5:59", "6:00-6:49", "6:50-6:59", "7:00-7:59", "8:00-8:59", "9:00-9:59", "10:00-10:59", "11:00-11:59"];
+const AM_HOURS = ["12:00-12:59", "1:00-1:59", "2:00-2:59", "3:00-3:59", "4:00-4:59", "5:00-5:59", "6:00-6:59", "7:00-7:59", "8:00-8:59", "9:00-9:59", "10:00-10:59", "11:00-11:59"];
+const PM_HOURS = ["12:00-12:59", "1:00-1:59", "2:00-2:59", "3:00-3:59", "4:00-4:59", "5:00-5:59", "6:00-6:59", "7:00-7:59", "8:00-8:59", "9:00-9:59", "10:00-10:59", "11:00-11:59"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const STORAGE_KEY = 'WorkflowData';
 
 // Data Store
-let workData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+var workData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
 // Migrate old data on load (convert string tasks to objects)
 for (let d in workData) {
@@ -20,7 +20,7 @@ for (let d in workData) {
                 if (Array.isArray(workData[d][p][h])) {
                     workData[d][p][h] = workData[d][p][h].map(task => {
                         if (typeof task === 'string') {
-                            return { desc: task, category: 'routine', done: false, id: Date.now() + Math.random() };
+                            return { desc: task, category: 'personal', done: false, id: Date.now() + Math.random() };
                         }
                         return task;
                     });
@@ -33,6 +33,9 @@ saveData();
 
 function saveData() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(workData));
+    if (typeof syncToFirebase === 'function') {
+        syncToFirebase(workData);
+    }
 }
 
 let activeInlineInput = null; // Track where the user is currently typing
@@ -66,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newBudget = prompt("Set your daily budget (৳):", currentBudget);
             if (newBudget !== null && !isNaN(newBudget) && newBudget.trim() !== "") {
                 localStorage.setItem('WorkflowBudget', parseFloat(newBudget));
+                saveData(); // Calls syncToFirebase to save both workData and Budget
                 updateProgressRing();
             }
         });
@@ -576,10 +580,11 @@ function renderInlineInput(container, dateStr, hour) {
     const select = document.createElement('select');
     select.className = 'inline-select';
     select.innerHTML = `
+        <option value="personal" selected>🟢 Personal</option>
+        <option value="office">🏢 Office</option>
         <option value="routine">🔵 Routine</option>
         <option value="work">💼 Work</option>
         <option value="urgent">🔴 Urgent</option>
-        <option value="personal">🟢 Personal</option>
     `;
 
     const amountInput = document.createElement('input');
@@ -611,6 +616,47 @@ function renderInlineInput(container, dateStr, hour) {
     });
 
     form.appendChild(input);
+    
+    // Quick Add Chips
+    const quickAddContainer = document.createElement('div');
+    quickAddContainer.style.display = 'flex';
+    quickAddContainer.style.gap = '8px';
+    quickAddContainer.style.width = '100%';
+    quickAddContainer.style.overflowX = 'auto';
+    quickAddContainer.style.paddingBottom = '4px';
+    quickAddContainer.className = 'quick-add-chips'; // Add hidden scrollbar in CSS
+    
+    const repetitiveTasks = ["Ghumabo", "Office", "Commute", "Breakfast", "Lunch", "Dinner", "Gym"];
+    repetitiveTasks.forEach(taskName => {
+        const chip = document.createElement('div');
+        chip.style.padding = '4px 10px';
+        chip.style.background = 'rgba(255,255,255,0.1)';
+        chip.style.border = '1px solid var(--glass-border)';
+        chip.style.borderRadius = '999px';
+        chip.style.fontSize = '0.75rem';
+        chip.style.cursor = 'pointer';
+        chip.style.whiteSpace = 'nowrap';
+        chip.style.color = 'var(--text-secondary)';
+        chip.textContent = taskName;
+        
+        chip.addEventListener('click', () => {
+            input.value = taskName;
+            
+            // Auto-select category if matching
+            if(taskName === "Office") select.value = "office";
+            if(taskName === "Ghumabo" || taskName === "Lunch" || taskName === "Dinner" || taskName === "Breakfast") select.value = "personal";
+            if(taskName === "Gym") select.value = "routine";
+            
+            input.focus();
+        });
+        
+        chip.addEventListener('mouseover', () => chip.style.color = 'var(--text-primary)');
+        chip.addEventListener('mouseout', () => chip.style.color = 'var(--text-secondary)');
+        
+        quickAddContainer.appendChild(chip);
+    });
+    
+    form.appendChild(quickAddContainer);
     
     const row2 = document.createElement('div');
     row2.style.display = 'flex';
@@ -670,7 +716,8 @@ function updateProgressRing() {
         urgent: 0,
         routine: 0,
         work: 0,
-        personal: 0
+        personal: 0,
+        office: 0
     };
 
     ['AM', 'PM'].forEach(p => {
@@ -713,6 +760,8 @@ function updateProgressRing() {
     if (wEl) wEl.textContent = `${counts.work} (${formatPct(counts.work)})`;
     const rEl = document.getElementById('chart-routine');
     if (rEl) rEl.textContent = `${counts.routine} (${formatPct(counts.routine)})`;
+    const oEl = document.getElementById('chart-office');
+    if (oEl) oEl.textContent = `${counts.office} (${formatPct(counts.office)})`;
     const pEl = document.getElementById('chart-personal');
     if (pEl) pEl.textContent = `${counts.personal} (${formatPct(counts.personal)})`;
 
@@ -720,6 +769,7 @@ function updateProgressRing() {
     if (uEl) uEl.parentElement.style.display = counts.urgent > 0 ? 'flex' : 'none';
     if (wEl) wEl.parentElement.style.display = counts.work > 0 ? 'flex' : 'none';
     if (rEl) rEl.parentElement.style.display = counts.routine > 0 ? 'flex' : 'none';
+    if (oEl) oEl.parentElement.style.display = counts.office > 0 ? 'flex' : 'none';
     if (pEl) pEl.parentElement.style.display = counts.personal > 0 ? 'flex' : 'none';
     
     // Total Work display
@@ -803,9 +853,9 @@ function updateProgressRing() {
         let gradientStops = [];
         let currentPct = 0;
         // Match CSS stroke colors and class names exactly
-        const colors = { urgent: '#f43f5e', work: '#6366f1', routine: '#38bdf8', personal: '#10b981' };
+        const colors = { urgent: '#f43f5e', work: '#6366f1', routine: '#38bdf8', personal: '#10b981', office: '#f59e0b' };
 
-        ['urgent', 'work', 'routine', 'personal'].forEach(cat => {
+        ['urgent', 'work', 'routine', 'personal', 'office'].forEach(cat => {
             if (counts[cat] > 0) {
                 const slicePct = (counts[cat] / total) * 100;
                 gradientStops.push(`${colors[cat]} ${currentPct}% ${currentPct + slicePct}%`);
@@ -859,12 +909,7 @@ function updateCurrentTimeHighlight() {
             const hourPart = parseInt(hourPartStr, 10);
 
             if (hourPart === displayHour12) {
-                if (displayHour12 === 6) {
-                    if (mins < 50 && text.includes('6:00-6:49')) row.classList.add('current-time-slot');
-                    else if (mins >= 50 && text.includes('6:50-6:59')) row.classList.add('current-time-slot');
-                } else {
-                    row.classList.add('current-time-slot');
-                }
+                row.classList.add('current-time-slot');
             }
         }
     });
