@@ -1,9 +1,10 @@
-const CACHE_NAME = 'workflow-cache-v3';
+const CACHE_NAME = 'workflow-cache-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './firebase-manager.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -22,13 +23,25 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {
+  // Use Stale-While-Revalidate or Network-First for better updates,
+  // but keeping cache-first for now while relying on version bumps.
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
+    fetch(event.request).catch(() => {
+      return caches.match(event.request);
     })
   );
 });
