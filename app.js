@@ -219,7 +219,7 @@ function updateLiveClock() {
     const clockEl = document.getElementById('live-clock');
     if (!clockEl) return;
     const now = new Date();
-    clockEl.textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+    clockEl.innerHTML = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).replace(' ', '&nbsp;');
 }
 
 // Core Functions
@@ -283,7 +283,8 @@ function getFormatDate(dateObj) {
 // ---------------- DAY VIEW ----------------
 function renderDayView() {
     // Header
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const isMobile = window.innerWidth <= 600;
+    const options = isMobile ? { weekday: 'short', month: 'short', day: 'numeric' } : { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('current-date-display').textContent = currentDate.toLocaleDateString(undefined, options);
 
     const shortOptions = { weekday: 'short', day: 'numeric' };
