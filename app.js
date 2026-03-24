@@ -71,6 +71,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const refreshBtn = document.getElementById('refresh-app');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            window.location.reload();
+        });
+    }
+
     if (expenseForm) {
         expenseForm.addEventListener('submit', (e) => {
             e.preventDefault();
