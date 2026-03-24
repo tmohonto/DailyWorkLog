@@ -43,6 +43,7 @@ body {
     min-height: 100vh;
     overflow-x: hidden;
     position: relative;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Background Animated Gradient Mesh */
@@ -110,7 +111,7 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 2rem;
+    padding: calc(1rem + env(safe-area-inset-top)) 2rem 1rem 2rem;
     gap: 1rem;
 }
 
@@ -736,6 +737,23 @@ circle {
     color: var(--text-primary);
     border-color: var(--accent);
     box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+/* iOS Specific touch target improvements */
+@media (max-width: 600px) {
+    button, .tab-btn, .toggle-btn, .icon-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .day-sidebar {
+        margin-top: 1rem;
+    }
+    
+    .material-widget {
+        transform: scale(0.9);
+        margin: -20px 0;
+    }
 }
 
 /* Schedule List (Day View) */
