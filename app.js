@@ -658,30 +658,15 @@ function renderInlineInput(container, dateStr, hour) {
     
     form.appendChild(quickAddContainer);
     
-    const row2 = document.createElement('div');
-    row2.style.display = 'flex';
-    row2.style.gap = '8px';
-    row2.style.width = '100%';
-    
     amountInput.style.flex = '1';
-    amountInput.style.maxWidth = 'none';
-    
-    select.style.flex = '2';
-
-    row2.appendChild(amountInput);
-    row2.appendChild(select);
-    form.appendChild(row2);
-
-    const btnRow = document.createElement('div');
-    btnRow.style.display = 'flex';
-    btnRow.style.gap = '8px';
-    btnRow.style.width = '100%';
+    select.style.flex = '1';
     saveBtn.style.flex = '1';
     cancelBtn.style.flex = '1';
     
-    btnRow.appendChild(saveBtn);
-    btnRow.appendChild(cancelBtn);
-    form.appendChild(btnRow);
+    form.appendChild(amountInput);
+    form.appendChild(select);
+    form.appendChild(saveBtn);
+    form.appendChild(cancelBtn);
     wrap.appendChild(form);
 
     container.appendChild(wrap);

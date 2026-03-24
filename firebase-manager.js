@@ -46,6 +46,7 @@ const submitBtn = document.getElementById('auth-submit-btn');
 const toggleModeBtn = document.getElementById('auth-toggle-mode');
 const googleLoginBtn = document.getElementById('google-login-btn');
 const desktopLogoutBtn = document.getElementById('desktop-logout-btn');
+const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
 
 // Toggle Login / Signup Mode
 if (toggleModeBtn) {
@@ -90,6 +91,11 @@ if (googleLoginBtn) {
 
 if (desktopLogoutBtn) {
     desktopLogoutBtn.addEventListener('click', () => {
+        if (auth) auth.signOut();
+    });
+}
+if (mobileLogoutBtn) {
+    mobileLogoutBtn.addEventListener('click', () => {
         if (auth) auth.signOut();
     });
 }
