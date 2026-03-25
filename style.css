@@ -1181,7 +1181,7 @@ circle {
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
     outline: none;
-    flex: 1.5;
+    flex: 2; /* Increased for better label visibility */
     transition: var(--transition);
 }
 
@@ -1217,17 +1217,46 @@ circle {
     }
     
     .inline-actions-row {
-        display: flex;
-        gap: 0.8rem;
-        width: 100%;
-        margin-top: 0.5rem;
+        display: none !important;
     }
 
-    .inline-actions-row .inline-btn {
+    .horizontal-actions {
+        display: flex;
+        gap: 0.5rem;
+        width: 100%;
+        margin-top: 0.2rem;
+        align-items: stretch;
+    }
+
+    .horizontal-actions .inline-input {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.85rem;
+    }
+
+    .horizontal-actions .inline-select {
+        padding: 0.4rem;
+        font-size: 0.8rem;
+    }
+
+    .compact-btn {
+        padding: 0.4rem 0.6rem !important;
+        font-size: 0.75rem !important;
         flex: 1;
-        min-width: 0; /* Prevent overflow if text is long */
+        min-width: 55px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     
+    .btn-save.compact-btn {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent));
+    }
+    
+    .btn-cancel.compact-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+    }
+
     .inline-btn {
         padding: 0.5rem 0.8rem;
         font-size: 0.85rem;

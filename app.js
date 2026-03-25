@@ -847,27 +847,21 @@ function renderInlineInput(container, dateStr, hour) {
 
     renderChips();
     
-    form.appendChild(quickAddContainer);
-
-    // Properties Row (Amount + Category)
-    const propertiesRow = document.createElement('div');
-    propertiesRow.className = 'inline-properties-row';
+    // Properties Row (Amount + Category + Actions)
+    const actionRow = document.createElement('div');
+    actionRow.className = 'inline-properties-row horizontal-actions';
     
     amountInput.className = 'inline-input inline-amount-input';
-    propertiesRow.appendChild(amountInput);
-    propertiesRow.appendChild(select);
-    form.appendChild(propertiesRow);
+    saveBtn.className = 'inline-btn btn-save compact-btn';
+    cancelBtn.className = 'inline-btn btn-cancel compact-btn';
+    
+    actionRow.appendChild(amountInput);
+    actionRow.appendChild(select);
+    actionRow.appendChild(saveBtn);
+    actionRow.appendChild(cancelBtn);
+    form.appendChild(actionRow);
 
-    // Actions Row (Save + Cancel)
-    const actionsRow = document.createElement('div');
-    actionsRow.className = 'inline-actions-row';
-    
-    saveBtn.className = 'inline-btn btn-save';
-    cancelBtn.className = 'inline-btn btn-cancel';
-    
-    actionsRow.appendChild(saveBtn);
-    actionsRow.appendChild(cancelBtn);
-    form.appendChild(actionsRow);
+    form.appendChild(quickAddContainer);
 
     wrap.appendChild(form);
 
