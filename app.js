@@ -101,7 +101,6 @@ const expensesList = document.getElementById('expenses-list');
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
-    initSwipeGestures();
     
     if (showExpensesBtn) {
         showExpensesBtn.addEventListener('click', () => {
@@ -155,65 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let currentDayMode = 'schedule'; // 'schedule' or 'expenses'
 
-function initSwipeGestures() {
-    let touchstartX = 0;
-    let touchendX = 0;
-    let touchstartY = 0;
-    let touchendY = 0;
-
-    const content = document.querySelector('.content-wrapper');
-
-    content.addEventListener('touchstart', e => {
-        touchstartX = e.changedTouches[0].screenX;
-        touchstartY = e.changedTouches[0].screenY;
-    }, { passive: true });
-
-    content.addEventListener('touchend', e => {
-        touchendX = e.changedTouches[0].screenX;
-        touchendY = e.changedTouches[0].screenY;
-        handleGesture();
-    }, { passive: true });
-
-    function handleGesture() {
-        const dx = touchendX - touchstartX;
-        const dy = touchendY - touchstartY;
-
-        // Ensure vertical scroll isn't swallowed
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-            if (dx > 0) {
-                // Swipe Right -> Previous
-                navigate('prev');
-            } else {
-                // Swipe Left -> Next
-                navigate('next');
-            }
-        }
-    }
-
-    function navigate(dir) {
-        if (currentView === 'day-view') {
-            currentDate.setDate(currentDate.getDate() + (dir === 'next' ? 1 : -1));
-            renderDayView();
-        } else if (currentView === 'month-view') {
-            currentDate.setMonth(currentDate.getMonth() + (dir === 'next' ? 1 : -1));
-            renderMonthView();
-        } else if (currentView === 'year-view') {
-            currentDate.setFullYear(currentDate.getFullYear() + (dir === 'next' ? 1 : -1));
-            renderYearView();
-        }
-        
-        // Add a visual feedback/transition if needed
-        content.style.transition = 'none';
-        content.style.transform = dir === 'next' ? 'translateX(20px)' : 'translateX(-20px)';
-        content.style.opacity = '0.7';
-        
-        setTimeout(() => {
-            content.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-            content.style.transform = 'translateX(0)';
-            content.style.opacity = '1';
-        }, 50);
-    }
-}
 
 tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
