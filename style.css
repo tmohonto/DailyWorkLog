@@ -1181,7 +1181,7 @@ circle {
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
     outline: none;
-    flex: 2; /* Increased for better label visibility */
+    flex: 1; /* Reset to balanced */
     transition: var(--transition);
 }
 
@@ -1217,49 +1217,44 @@ circle {
     }
     
     .inline-actions-row {
-        display: none !important;
-    }
-
-    .horizontal-actions {
         display: flex;
-        gap: 0.5rem;
+        flex-direction: column;
+        gap: 0.6rem;
         width: 100%;
-        margin-top: 0.2rem;
-        align-items: stretch;
-    }
-
-    .horizontal-actions .inline-input {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.85rem;
-    }
-
-    .horizontal-actions .inline-select {
-        padding: 0.4rem;
-        font-size: 0.8rem;
-    }
-
-    .compact-btn {
-        padding: 0.4rem 0.6rem !important;
-        font-size: 0.75rem !important;
-        flex: 1;
-        min-width: 55px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .btn-save.compact-btn {
-        background: linear-gradient(135deg, var(--primary-color), var(--accent));
-    }
-    
-    .btn-cancel.compact-btn {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--glass-border);
+        margin-top: 0.8rem;
     }
 
     .inline-btn {
-        padding: 0.5rem 0.8rem;
-        font-size: 0.85rem;
+        width: 100%;
+        padding: 0.8rem;
+        font-size: 1rem;
+        justify-content: center;
+    }
+
+    .btn-save {
+        order: 1;
+        background: linear-gradient(135deg, var(--primary-color), var(--accent)) !important;
+        font-weight: 800;
+    }
+
+    .btn-cancel {
+        order: 2;
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid var(--glass-border) !important;
+        color: var(--text-secondary);
+    }
+
+    .inline-properties-row {
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .inline-amount-input {
+        max-width: 100% !important;
+    }
+
+    .inline-select {
+        width: 100%;
     }
 }
 
