@@ -544,7 +544,7 @@ function renderExpensesView() {
                 </div>
             `;
             
-            div.querySelector('.edit-btn').addEventListener('click', () => editExpense(item.id));
+            div.querySelector('.edit-btn').addEventListener('click', () => openEditModal(item.id));
             div.querySelector('.delete-btn').addEventListener('click', () => deleteExpenseById(item.id));
             
             expensesList.appendChild(div);
@@ -628,7 +628,7 @@ function deleteExpenseById(id) {
 
 let editingId = null;
 
-function editExpense(id) {
+function openEditModal(id) {
     const dateStr = getFormatDate(currentDate);
     let target = null;
 
