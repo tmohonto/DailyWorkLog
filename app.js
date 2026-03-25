@@ -250,6 +250,16 @@ function initApp() {
 
     populateExpenseTimeSlots();
 
+    // Edit Modal Listeners
+    const editForm = document.getElementById('edit-expense-form');
+    if (editForm) editForm.addEventListener('submit', handleEditSave);
+    
+    const closeBtn = document.getElementById('close-edit-modal');
+    if (closeBtn) closeBtn.addEventListener('click', closeEditModal);
+
+    const cancelBtnModal = document.getElementById('cancel-edit-btn');
+    if (cancelBtnModal) cancelBtnModal.addEventListener('click', closeEditModal);
+
     setInterval(() => {
         if (currentView === 'day-view') {
             updateCurrentTimeHighlight();
@@ -654,25 +664,23 @@ function deleteExpenseById(id) {
     }
 }
 
+let editingId = null;
+
 function editExpense(id) {
     const dateStr = getFormatDate(currentDate);
     let target = null;
-    let isTask = false;
 
     // Find the item
     if (workData[dateStr] && workData[dateStr].expenses) {
         target = workData[dateStr].expenses.find(e => e.id === id);
     }
     
-    if (!target) {
+    if (!target && workData[dateStr]) {
         ['AM', 'PM'].forEach(p => {
-            if (workData[dateStr] && workData[dateStr][p]) {
+            if (workData[dateStr][p]) {
                 Object.keys(workData[dateStr][p]).forEach(hour => {
                     const found = workData[dateStr][p][hour].find(t => t.id === id);
-                    if (found) {
-                        target = found;
-                        isTask = true;
-                    }
+                    if (found) target = found;
                 });
             }
         });
@@ -680,17 +688,49 @@ function editExpense(id) {
 
     if (!target) return;
 
-    const newDesc = prompt("Edit Description:", target.desc);
-    if (newDesc === null) return;
+    editingId = id;
+    document.getElementById('edit-desc').value = target.desc;
+    document.getElementById('edit-amount').value = target.amount;
+    document.getElementById('edit-modal-overlay').classList.add('active');
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal-overlay').classList.remove('active');
+    editingId = null;
+}
+
+function handleEditSave(e) {
+    e.preventDefault();
+    if (!editingId) return;
+
+    const dateStr = getFormatDate(currentDate);
+    const newDesc = document.getElementById('edit-desc').value.trim();
+    const newAmount = parseFloat(document.getElementById('edit-amount').value);
+
+    let target = null;
+    if (workData[dateStr] && workData[dateStr].expenses) {
+        target = workData[dateStr].expenses.find(e => e.id === editingId);
+    }
     
-    const newAmount = prompt("Edit Amount (৳):", target.amount);
-    if (newAmount === null || isNaN(newAmount) || newAmount.trim() === "") return;
+    if (!target && workData[dateStr]) {
+        ['AM', 'PM'].forEach(p => {
+            if (workData[dateStr][p]) {
+                Object.keys(workData[dateStr][p]).forEach(hour => {
+                    const found = workData[dateStr][p][hour].find(t => t.id === editingId);
+                    if (found) target = found;
+                });
+            }
+        });
+    }
 
-    target.desc = newDesc.trim() || target.desc;
-    target.amount = parseFloat(newAmount);
+    if (target) {
+        target.desc = newDesc || target.desc;
+        target.amount = isNaN(newAmount) ? 0 : newAmount;
+        saveData();
+        renderDayView();
+    }
 
-    saveData();
-    renderDayView();
+    closeEditModal();
 }
 
 function renderInlineInput(container, dateStr, hour) {
