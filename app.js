@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (showExpensesBtn) {
         showExpensesBtn.addEventListener('click', () => {
             currentDayMode = 'expenses';
+            populateExpenseTimeSlots();
             renderDayView();
         });
     }
@@ -65,11 +66,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const editBudgetBtn = document.getElementById('edit-budget-btn');
     if (editBudgetBtn) {
         editBudgetBtn.addEventListener('click', () => {
-            const currentBudget = localStorage.getItem('WorkflowBudget') || 500;
-            const newBudget = prompt("Set your daily budget (৳):", currentBudget);
+            const dateStr = getFormatDate(currentDate);
+            const globalBudget = localStorage.getItem('WorkflowBudget') || 500;
+            const currentDayBudget = workData[dateStr]?.budget || globalBudget;
+            
+            const newBudget = prompt(`Set daily budget for ${dateStr} (৳):`, currentDayBudget);
             if (newBudget !== null && !isNaN(newBudget) && newBudget.trim() !== "") {
-                localStorage.setItem('WorkflowBudget', parseFloat(newBudget));
-                saveData(); // Calls syncToFirebase to save both workData and Budget
+                const val = parseFloat(newBudget);
+                if (!workData[dateStr]) workData[dateStr] = {};
+                workData[dateStr].budget = val;
+                
+                saveData();
                 updateProgressRing();
             }
         });
@@ -241,29 +248,53 @@ function initApp() {
     updateLiveClock();
     setInterval(updateLiveClock, 1000);
 
+    populateExpenseTimeSlots();
+
     setInterval(() => {
         if (currentView === 'day-view') {
             updateCurrentTimeHighlight();
         }
     }, 60000);
+}
 
-    // Populate Expense Tab Time Slots
+function populateExpenseTimeSlots() {
     const expenseTimeSelect = document.getElementById('expense-time');
-    if (expenseTimeSelect) {
-        expenseTimeSelect.innerHTML = '<option value="" disabled selected>Pick Time Slot</option>';
-        AM_HOURS.forEach(h => {
+    if (!expenseTimeSelect) return;
+
+    expenseTimeSelect.innerHTML = ''; // Clear existing
+    
+    const now = new Date();
+    const currentHourNum = now.getHours();
+    const currentIsAm = currentHourNum < 12;
+    const currentPeriod = currentIsAm ? 'AM' : 'PM';
+    const displayHr = currentHourNum === 0 ? 12 : (currentHourNum > 12 ? currentHourNum - 12 : currentHourNum);
+    const currentTimeSlotFull = `${displayHr}:00-${displayHr}:59 ${currentPeriod}`;
+
+    // Default placeholder
+    const placeholder = document.createElement('option');
+    placeholder.value = "";
+    placeholder.textContent = "Pick Time Slot";
+    placeholder.disabled = true;
+    expenseTimeSelect.appendChild(placeholder);
+
+    const addOptions = (hours, period) => {
+        hours.forEach(h => {
             const opt = document.createElement('option');
-            opt.value = h + ' AM';
-            opt.textContent = h + ' AM';
+            const val = h + ' ' + period;
+            opt.value = val;
+            
+            if (val === currentTimeSlotFull) {
+                opt.textContent = val + " (Current Time Slot)";
+                opt.selected = true;
+            } else {
+                opt.textContent = val;
+            }
             expenseTimeSelect.appendChild(opt);
         });
-        PM_HOURS.forEach(h => {
-            const opt = document.createElement('option');
-            opt.value = h + ' PM';
-            opt.textContent = h + ' PM';
-            expenseTimeSelect.appendChild(opt);
-        });
-    }
+    };
+
+    addOptions(AM_HOURS, "AM");
+    addOptions(PM_HOURS, "PM");
 }
 
 function renderCurrentView() {
@@ -483,18 +514,27 @@ function renderExpensesView() {
     const manualExpenses = dayData.expenses || [];
     
     // Collect task-based expenses
-    let taskExpenses = [];
+    let allExpenses = [];
+    
+    // Add manual expenses
+    manualExpenses.forEach(e => {
+        allExpenses.push({...e, isTask: false});
+    });
+
+    // Add task-based expenses
     ['AM', 'PM'].forEach(p => {
         if (dayData[p]) {
             Object.keys(dayData[p]).forEach(hour => {
                 dayData[p][hour].forEach(t => {
                     if (t.amount && t.amount > 0) {
-                        taskExpenses.push({
+                        allExpenses.push({
                             desc: t.desc,
                             amount: t.amount,
                             category: t.category,
                             id: t.id,
-                            isTask: true
+                            isTask: true,
+                            period: p,
+                            hour: hour
                         });
                     }
                 });
@@ -502,24 +542,39 @@ function renderExpensesView() {
         }
     });
 
-    const allExpenses = [...manualExpenses, ...taskExpenses].sort((a,b) => b.id - a.id);
+    allExpenses.sort((a,b) => b.id - a.id);
 
     if (allExpenses.length === 0) {
         expensesList.innerHTML = '<div class="empty-day-state"><div class="empty-icon">💸</div><h4>No expenses logged for today.</h4></div>';
     } else {
-        allExpenses.forEach((item, index) => {
+        allExpenses.forEach((item) => {
             const div = document.createElement('div');
             div.className = 'expense-item';
             div.innerHTML = `
                 <div class="expense-info">
-                    <span class="expense-name">${item.category ? `<span class="cat-dot cat-dot-${item.category}"></span>` : ''}${item.desc}</span>
+                    <span class="expense-name">
+                        <span class="cat-dot cat-dot-${item.category || 'personal'}"></span>
+                        ${item.desc}
+                        ${item.isTask ? '<span class="expense-type-tag">Schedule</span>' : '<span class="expense-type-tag">Manual</span>'}
+                    </span>
                     <span class="expense-date">${new Date(item.id).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                 </div>
                 <div class="expense-amount-group">
                     <span class="expense-value">৳${item.amount.toFixed(2)}</span>
-                    ${item.isTask ? '' : `<span class="expense-delete" onclick="deleteExpense(${manualExpenses.indexOf(item)})">×</span>`}
+                    <div class="expense-actions">
+                        <button class="expense-action-btn edit-btn" title="Edit Expense">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                        <button class="expense-action-btn delete-btn" title="Delete Expense">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </button>
+                    </div>
                 </div>
             `;
+            
+            div.querySelector('.edit-btn').addEventListener('click', () => editExpense(item.id));
+            div.querySelector('.delete-btn').addEventListener('click', () => deleteExpenseById(item.id));
+            
             expensesList.appendChild(div);
         });
     }
@@ -556,13 +611,86 @@ function addExpense(desc, amount, category = 'personal', timeSlotStr = '') {
     renderDayView();
 }
 
-function deleteExpense(index) {
+function deleteExpenseById(id) {
     const dateStr = getFormatDate(currentDate);
+    if (!confirm("Are you sure you want to delete this expense?")) return;
+
+    let found = false;
+
+    // 1. Check manual expenses
     if (workData[dateStr] && workData[dateStr].expenses) {
-        workData[dateStr].expenses.splice(index, 1);
+        const idx = workData[dateStr].expenses.findIndex(e => e.id === id);
+        if (idx !== -1) {
+            workData[dateStr].expenses.splice(idx, 1);
+            found = true;
+        }
+    }
+
+    // 2. Check task-based expenses if not found yet
+    if (!found) {
+        ['AM', 'PM'].forEach(p => {
+            if (workData[dateStr] && workData[dateStr][p]) {
+                Object.keys(workData[dateStr][p]).forEach(hour => {
+                    const tasks = workData[dateStr][p][hour];
+                    const idx = tasks.findIndex(t => t.id === id);
+                    if (idx !== -1) {
+                        // Either delete the whole task or just the amount? 
+                        // User said "delete from time am/pm shot also" which implies removing the task or its expense nature.
+                        // Let's remove the amount from the task to keep the record of work, or delete it if it's purely an expense.
+                        // Most users expect 'delete expense' to remove the cost.
+                        tasks[idx].amount = 0; 
+                        // If it came from the expense tab, it might be a 'task' created just for the expense.
+                        // Let's just zero the amount to be safe.
+                        found = true;
+                    }
+                });
+            }
+        });
+    }
+
+    if (found) {
         saveData();
         renderDayView();
     }
+}
+
+function editExpense(id) {
+    const dateStr = getFormatDate(currentDate);
+    let target = null;
+    let isTask = false;
+
+    // Find the item
+    if (workData[dateStr] && workData[dateStr].expenses) {
+        target = workData[dateStr].expenses.find(e => e.id === id);
+    }
+    
+    if (!target) {
+        ['AM', 'PM'].forEach(p => {
+            if (workData[dateStr] && workData[dateStr][p]) {
+                Object.keys(workData[dateStr][p]).forEach(hour => {
+                    const found = workData[dateStr][p][hour].find(t => t.id === id);
+                    if (found) {
+                        target = found;
+                        isTask = true;
+                    }
+                });
+            }
+        });
+    }
+
+    if (!target) return;
+
+    const newDesc = prompt("Edit Description:", target.desc);
+    if (newDesc === null) return;
+    
+    const newAmount = prompt("Edit Amount (৳):", target.amount);
+    if (newAmount === null || isNaN(newAmount) || newAmount.trim() === "") return;
+
+    target.desc = newDesc.trim() || target.desc;
+    target.amount = parseFloat(newAmount);
+
+    saveData();
+    renderDayView();
 }
 
 function renderInlineInput(container, dateStr, hour) {
@@ -616,58 +744,59 @@ function renderInlineInput(container, dateStr, hour) {
         saveInlineTask(dateStr, selectedPeriod, hour, input.value, select.value, amt);
     });
 
-    form.appendChild(input);
+    const mainRow = document.createElement('div');
+    mainRow.className = 'inline-main-row';
+    mainRow.appendChild(input);
+    form.appendChild(mainRow);
     
     // Quick Add Chips
     const quickAddContainer = document.createElement('div');
+    quickAddContainer.className = 'quick-add-chips';
     quickAddContainer.style.display = 'flex';
     quickAddContainer.style.gap = '8px';
     quickAddContainer.style.width = '100%';
     quickAddContainer.style.overflowX = 'auto';
-    quickAddContainer.style.paddingBottom = '4px';
-    quickAddContainer.className = 'quick-add-chips'; // Add hidden scrollbar in CSS
+    quickAddContainer.style.padding = '4px 0';
     
     const repetitiveTasks = ["Ghumabo", "Office", "Commute", "Breakfast", "Lunch", "Dinner", "Gym"];
     repetitiveTasks.forEach(taskName => {
         const chip = document.createElement('div');
-        chip.style.padding = '4px 10px';
-        chip.style.background = 'rgba(255,255,255,0.1)';
-        chip.style.border = '1px solid var(--glass-border)';
-        chip.style.borderRadius = '999px';
-        chip.style.fontSize = '0.75rem';
-        chip.style.cursor = 'pointer';
-        chip.style.whiteSpace = 'nowrap';
-        chip.style.color = 'var(--text-secondary)';
+        chip.className = 'quick-add-chip';
         chip.textContent = taskName;
         
         chip.addEventListener('click', () => {
             input.value = taskName;
-            
-            // Auto-select category if matching
             if(taskName === "Office") select.value = "office";
             if(taskName === "Ghumabo" || taskName === "Lunch" || taskName === "Dinner" || taskName === "Breakfast") select.value = "personal";
             if(taskName === "Gym") select.value = "routine";
-            
             input.focus();
         });
-        
-        chip.addEventListener('mouseover', () => chip.style.color = 'var(--text-primary)');
-        chip.addEventListener('mouseout', () => chip.style.color = 'var(--text-secondary)');
         
         quickAddContainer.appendChild(chip);
     });
     
     form.appendChild(quickAddContainer);
+
+    // Properties Row (Amount + Category)
+    const propertiesRow = document.createElement('div');
+    propertiesRow.className = 'inline-properties-row';
     
-    amountInput.style.flex = '1';
-    select.style.flex = '1';
-    saveBtn.style.flex = '1';
-    cancelBtn.style.flex = '1';
+    amountInput.className = 'inline-input inline-amount-input';
+    propertiesRow.appendChild(amountInput);
+    propertiesRow.appendChild(select);
+    form.appendChild(propertiesRow);
+
+    // Actions Row (Save + Cancel)
+    const actionsRow = document.createElement('div');
+    actionsRow.className = 'inline-actions-row';
     
-    form.appendChild(amountInput);
-    form.appendChild(select);
-    form.appendChild(saveBtn);
-    form.appendChild(cancelBtn);
+    saveBtn.className = 'inline-btn btn-save';
+    cancelBtn.className = 'inline-btn btn-cancel';
+    
+    actionsRow.appendChild(saveBtn);
+    actionsRow.appendChild(cancelBtn);
+    form.appendChild(actionsRow);
+
     wrap.appendChild(form);
 
     container.appendChild(wrap);
@@ -793,7 +922,10 @@ function updateProgressRing() {
         totalCostEl.textContent = totalExposed.toFixed(2);
 
         // Budget Comparison
-        const dailyBudget = parseFloat(localStorage.getItem('WorkflowBudget')) || 500;
+        const dateStr = getFormatDate(currentDate);
+        const globalBudget = parseFloat(localStorage.getItem('WorkflowBudget')) || 500;
+        const dailyBudget = workData[dateStr]?.budget || globalBudget;
+        
         const budgetValEl = document.getElementById('chart-budget-value');
         if (budgetValEl) budgetValEl.textContent = dailyBudget;
 
@@ -982,6 +1114,108 @@ function renderMonthView() {
 
         grid.appendChild(cell);
     }
+
+    renderMonthExpenseChart();
+}
+
+function renderMonthExpenseChart() {
+    const container = document.getElementById('month-expense-chart');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const globalBudget = parseFloat(localStorage.getItem('WorkflowBudget')) || 500;
+    
+    const dayTotals = [];
+    let absoluteMax = globalBudget * 1.2;
+
+    for (let i = 1; i <= daysInMonth; i++) {
+        const dateStr = getFormatDate(new Date(year, month, i));
+        const dayData = workData[dateStr] || {};
+        const dayBudget = dayData.budget || globalBudget;
+        
+        let total = 0;
+        total += (dayData.expenses || []).reduce((sum, item) => sum + item.amount, 0);
+        ['AM', 'PM'].forEach(p => {
+            if (dayData[p]) {
+                Object.values(dayData[p]).forEach(arr => {
+                    arr.forEach(t => { if (t.amount) total += t.amount; });
+                });
+            }
+        });
+        
+        dayTotals.push({ day: i, amount: total, budget: dayBudget });
+        if (total > absoluteMax) absoluteMax = total;
+        if (dayBudget > absoluteMax) absoluteMax = dayBudget;
+    }
+
+    if (absoluteMax === 0) {
+        container.innerHTML = '<div style="width: 100%; text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 2rem;">No expenses or budget recorded.</div>';
+        return;
+    }
+
+    dayTotals.forEach(data => {
+        const barGroup = document.createElement('div');
+        barGroup.className = 'bar-group';
+        
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+        label.textContent = data.day;
+        
+        const track = document.createElement('div');
+        track.className = 'bar-track';
+        
+        const segmentContainer = document.createElement('div');
+        segmentContainer.className = 'bar-segment-container';
+        
+        if (data.amount > data.budget) {
+            // Over budget: show budget line and red segment
+            const budgetPos = (data.budget / absoluteMax) * 100;
+            const bLine = document.createElement('div');
+            bLine.className = 'budget-line';
+            bLine.style.left = `${budgetPos}%`;
+            track.appendChild(bLine);
+
+            const blueWidth = (data.budget / absoluteMax) * 100;
+            const redWidth = ((data.amount - data.budget) / absoluteMax) * 100;
+
+            const blueBar = document.createElement('div');
+            blueBar.className = 'bar-horizontal';
+            const redBar = document.createElement('div');
+            redBar.className = 'bar-excess';
+
+            setTimeout(() => {
+                blueBar.style.width = `${blueWidth}%`;
+                redBar.style.width = `${redWidth}%`;
+            }, 100);
+            
+            segmentContainer.appendChild(blueBar);
+            segmentContainer.appendChild(redBar);
+        } else {
+            // Under budget: show only blue bar, no marker
+            const width = (data.amount / absoluteMax) * 100;
+            const blueBar = document.createElement('div');
+            blueBar.className = 'bar-horizontal';
+            setTimeout(() => {
+                blueBar.style.width = `${width}%`;
+            }, 100);
+            segmentContainer.appendChild(blueBar);
+        }
+
+        track.appendChild(segmentContainer);
+        
+        const amountMsg = document.createElement('div');
+        amountMsg.className = 'bar-amount';
+        amountMsg.textContent = data.amount > 0 ? `৳${Math.round(data.amount)}` : '৳0';
+        
+        barGroup.appendChild(label);
+        barGroup.appendChild(track);
+        barGroup.appendChild(amountMsg);
+        container.appendChild(barGroup);
+    });
 }
 
 // ---------------- YEAR VIEW ----------------
@@ -1042,6 +1276,81 @@ function renderYearView() {
         });
 
         grid.appendChild(card);
+    });
+
+    renderYearExpenseChart();
+}
+
+function renderYearExpenseChart() {
+    const container = document.getElementById('year-expense-chart');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const year = currentDate.getFullYear();
+    const dailyBudget = parseFloat(localStorage.getItem('WorkflowBudget')) || 500;
+    const monthlyMax = dailyBudget * 31; // Conservative reference
+    
+    let maxAmount = 100; // Min scale
+    const monthTotals = [];
+
+    for (let m = 0; m < 12; m++) {
+        let monthTotal = 0;
+        const daysInMonth = new Date(year, m + 1, 0).getDate();
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dateStr = getFormatDate(new Date(year, m, i));
+            const dayData = workData[dateStr] || {};
+            monthTotal += (dayData.expenses || []).reduce((sum, item) => sum + item.amount, 0);
+            ['AM', 'PM'].forEach(p => {
+                if (dayData[p]) {
+                    Object.values(dayData[p]).forEach(arr => {
+                        arr.forEach(t => { if (t.amount) monthTotal += t.amount; });
+                    });
+                }
+            });
+        }
+        monthTotals.push({ month: MONTH_NAMES[m].substring(0, 3), amount: monthTotal });
+        if (monthTotal > maxAmount) maxAmount = monthTotal;
+    }
+
+    if (maxAmount === 0) {
+        container.innerHTML = '<div style="width: 100%; text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 2rem;">No expenses recorded this year.</div>';
+        return;
+    }
+
+    monthTotals.forEach(data => {
+        const barGroup = document.createElement('div');
+        barGroup.className = 'bar-group';
+        
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+        label.textContent = data.month;
+        
+        const track = document.createElement('div');
+        track.className = 'bar-track';
+        
+        const segmentContainer = document.createElement('div');
+        segmentContainer.className = 'bar-segment-container';
+        
+        const width = (data.amount / maxAmount) * 100;
+
+        const blueBar = document.createElement('div');
+        blueBar.className = 'bar-horizontal';
+        
+        setTimeout(() => {
+            blueBar.style.width = `${width}%`;
+        }, 100);
+        
+        segmentContainer.appendChild(blueBar);
+        track.appendChild(segmentContainer);
+        
+        const amountMsg = document.createElement('div');
+        amountMsg.className = 'bar-amount';
+        amountMsg.textContent = data.amount > 0 ? `৳${Math.round(data.amount)}` : '৳0';
+        
+        barGroup.appendChild(label);
+        barGroup.appendChild(track);
+        barGroup.appendChild(amountMsg);
+        container.appendChild(barGroup);
     });
 }
 
