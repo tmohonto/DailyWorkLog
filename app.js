@@ -733,6 +733,13 @@ function handleEditSave(e) {
     closeEditModal();
 }
 
+// Dynamic Shortcuts
+let userShortcuts = JSON.parse(localStorage.getItem('userShortcuts')) || ["Ghumabo", "Office", "Commute", "Breakfast", "Lunch", "Dinner", "Gym"];
+
+function saveShortcuts() {
+    localStorage.setItem('userShortcuts', JSON.stringify(userShortcuts));
+}
+
 function renderInlineInput(container, dateStr, hour) {
     const wrap = document.createElement('div');
     wrap.className = 'inline-add-container';
@@ -792,28 +799,53 @@ function renderInlineInput(container, dateStr, hour) {
     // Quick Add Chips
     const quickAddContainer = document.createElement('div');
     quickAddContainer.className = 'quick-add-chips';
-    quickAddContainer.style.display = 'flex';
-    quickAddContainer.style.gap = '8px';
-    quickAddContainer.style.width = '100%';
-    quickAddContainer.style.overflowX = 'auto';
-    quickAddContainer.style.padding = '4px 0';
     
-    const repetitiveTasks = ["Ghumabo", "Office", "Commute", "Breakfast", "Lunch", "Dinner", "Gym"];
-    repetitiveTasks.forEach(taskName => {
-        const chip = document.createElement('div');
-        chip.className = 'quick-add-chip';
-        chip.textContent = taskName;
+    const renderChips = () => {
+        quickAddContainer.innerHTML = '';
         
-        chip.addEventListener('click', () => {
-            input.value = taskName;
-            if(taskName === "Office") select.value = "office";
-            if(taskName === "Ghumabo" || taskName === "Lunch" || taskName === "Dinner" || taskName === "Breakfast") select.value = "personal";
-            if(taskName === "Gym") select.value = "routine";
-            input.focus();
+        userShortcuts.forEach((taskName, index) => {
+            const chip = document.createElement('div');
+            chip.className = 'quick-add-chip';
+            chip.innerHTML = `
+                <span>${taskName}</span>
+                <span class="chip-delete" title="Delete Shortcut">&times;</span>
+            `;
+            
+            chip.addEventListener('click', (e) => {
+                if (e.target.classList.contains('chip-delete')) {
+                    e.stopPropagation();
+                    userShortcuts.splice(index, 1);
+                    saveShortcuts();
+                    renderChips();
+                    return;
+                }
+                input.value = taskName;
+                if(taskName === "Office") select.value = "office";
+                if(["Ghumabo", "Lunch", "Dinner", "Breakfast"].includes(taskName)) select.value = "personal";
+                if(taskName === "Gym") select.value = "routine";
+                input.focus();
+            });
+            
+            quickAddContainer.appendChild(chip);
         });
-        
-        quickAddContainer.appendChild(chip);
-    });
+
+        // Add New Shortcut Chip
+        const addChip = document.createElement('div');
+        addChip.className = 'quick-add-chip add-shortcut-chip';
+        addChip.innerHTML = '<span>+</span>';
+        addChip.title = "Add new shortcut";
+        addChip.addEventListener('click', () => {
+            const newName = prompt("Enter new shortcut name:");
+            if (newName && newName.trim()) {
+                userShortcuts.push(newName.trim());
+                saveShortcuts();
+                renderChips();
+            }
+        });
+        quickAddContainer.appendChild(addChip);
+    };
+
+    renderChips();
     
     form.appendChild(quickAddContainer);
 

@@ -1088,28 +1088,71 @@ circle {
 }
 
 .quick-add-chips {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    overflow-x: auto;
+    padding: 8px 0;
+    margin-bottom: 4px;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
 }
+
 .quick-add-chips::-webkit-scrollbar { display: none; }
 
 .quick-add-chip {
-    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-pill);
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
     color: var(--text-secondary);
     transition: var(--transition);
+    position: relative;
+    user-select: none;
 }
 
 .quick-add-chip:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-primary);
     border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.chip-delete {
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--text-muted);
+    transition: var(--transition);
+    padding: 2px;
+    margin-right: -4px;
+}
+
+.chip-delete:hover {
+    color: var(--danger);
+    transform: scale(1.2);
+}
+
+.add-shortcut-chip {
+    border-style: dashed;
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(99, 102, 241, 0.05);
+    font-size: 1.2rem;
+    padding: 2px 14px;
+}
+
+.add-shortcut-chip:hover {
+    background: rgba(99, 102, 241, 0.1);
+    border-style: solid;
 }
 
 .inline-input {
@@ -1174,7 +1217,15 @@ circle {
     }
     
     .inline-actions-row {
-        flex-direction: row; /* Keep horizontal but smaller padding */
+        display: flex;
+        gap: 0.8rem;
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .inline-actions-row .inline-btn {
+        flex: 1;
+        min-width: 0; /* Prevent overflow if text is long */
     }
     
     .inline-btn {
