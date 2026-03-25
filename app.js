@@ -38,22 +38,26 @@ function updateCategoryStyles() {
             .cat-${cat.id} { border-left-color: ${cat.color} !important; border-left-width: 4px; border-left-style: solid; }
             .cat-dot-${cat.id} { background-color: ${cat.color}; box-shadow: 0 0 8px ${cat.color}66; }
             .cat-border-${cat.id} { border-left: 4px solid ${cat.color}; }
+            .color-${cat.id} { color: ${cat.color}; }
         `;
     });
     styleTag.innerHTML = css;
 }
 
+function populateCategorySelect(select) {
+    if (!select) return;
+    const currentVal = select.value;
+    let html = '';
+    CATEGORIES.forEach(cat => {
+        html += `<option value="${cat.id}">${cat.icon || '●'} ${cat.label}</option>`;
+    });
+    select.innerHTML = html;
+    if (currentVal) select.value = currentVal;
+}
+
 function renderCategorySelects() {
     const selects = document.querySelectorAll('.inline-select, #edit-category, #expense-category');
-    selects.forEach(select => {
-        const currentVal = select.value;
-        let html = '';
-        CATEGORIES.forEach(cat => {
-            html += `<option value="${cat.id}">${cat.icon || '●'} ${cat.label}</option>`;
-        });
-        select.innerHTML = html;
-        if (currentVal) select.value = currentVal;
-    });
+    selects.forEach(populateCategorySelect);
 }
 
 // Migrate old data on load (convert string tasks to objects)
@@ -788,8 +792,8 @@ function renderInlineInput(container, dateStr, hour) {
     const select = document.createElement('select');
     select.className = 'inline-select';
     
-    // Dynamic categories will be populated by renderCategorySelects()
-    renderCategorySelects();
+    // Dynamic categories will be populated by populateCategorySelect()
+    populateCategorySelect(select);
 
     const amountInput = document.createElement('input');
     amountInput.type = 'number';
@@ -819,11 +823,10 @@ function renderInlineInput(container, dateStr, hour) {
         saveInlineTask(dateStr, selectedPeriod, hour, input.value, select.value, amt);
     });
 
+    // Main Input Row
+    const mainRow = document.createElement('div');
+    mainRow.className = 'inline-main-row';
     mainRow.appendChild(input);
-    mainRow.appendChild(select);
-    mainRow.appendChild(amountInput);
-    mainRow.appendChild(saveBtn);
-    mainRow.appendChild(cancelBtn);
     form.appendChild(mainRow);
     
     // Quick Add Chips
@@ -931,13 +934,8 @@ function updateProgressRing() {
     const dayData = workData[todayStr] || { AM: {}, PM: {} };
     let total = 0, done = 0;
 
-    let counts = {
-        urgent: 0,
-        routine: 0,
-        work: 0,
-        personal: 0,
-        office: 0
-    };
+    let counts = {};
+    CATEGORIES.forEach(cat => counts[cat.id] = 0);
 
     ['AM', 'PM'].forEach(p => {
         if (dayData[p]) {
@@ -972,24 +970,24 @@ function updateProgressRing() {
         return Number.isInteger(pct) ? pct + '%' : pct.toFixed(2) + '%';
     };
 
-    // Outside category stats - Display count and percentages
-    const uEl = document.getElementById('chart-urgent');
-    if (uEl) uEl.textContent = `${counts.urgent} (${formatPct(counts.urgent)})`;
-    const wEl = document.getElementById('chart-work');
-    if (wEl) wEl.textContent = `${counts.work} (${formatPct(counts.work)})`;
-    const rEl = document.getElementById('chart-routine');
-    if (rEl) rEl.textContent = `${counts.routine} (${formatPct(counts.routine)})`;
-    const oEl = document.getElementById('chart-office');
-    if (oEl) oEl.textContent = `${counts.office} (${formatPct(counts.office)})`;
-    const pEl = document.getElementById('chart-personal');
-    if (pEl) pEl.textContent = `${counts.personal} (${formatPct(counts.personal)})`;
-
-    // Only show categories that have > 0%
-    if (uEl) uEl.parentElement.style.display = counts.urgent > 0 ? 'flex' : 'none';
-    if (wEl) wEl.parentElement.style.display = counts.work > 0 ? 'flex' : 'none';
-    if (rEl) rEl.parentElement.style.display = counts.routine > 0 ? 'flex' : 'none';
-    if (oEl) oEl.parentElement.style.display = counts.office > 0 ? 'flex' : 'none';
-    if (pEl) pEl.parentElement.style.display = counts.personal > 0 ? 'flex' : 'none';
+    // Outside category stats - Dynamically generated
+    const catListEl = document.getElementById('chart-categories-list');
+    if (catListEl) {
+        catListEl.innerHTML = '';
+        CATEGORIES.forEach(cat => {
+            const count = counts[cat.id];
+            if (count > 0) {
+                const row = document.createElement('div');
+                row.className = 'chart-cat';
+                row.innerHTML = `
+                    <span class="cat-dot cat-dot-${cat.id}"></span>
+                    <span class="color-${cat.id}" style="font-weight:bold;">${count} (${formatPct(count)})</span>
+                    <span class="color-${cat.id}">${cat.label}</span>
+                `;
+                catListEl.appendChild(row);
+            }
+        });
+    }
     
     // Total Work display
     const totalRow = document.getElementById('chart-total-row');
@@ -1074,13 +1072,11 @@ function updateProgressRing() {
     if (pieChart) {
         let gradientStops = [];
         let currentPct = 0;
-        // Match CSS stroke colors and class names exactly
-        const colors = { urgent: '#f43f5e', work: '#6366f1', routine: '#38bdf8', personal: '#10b981', office: '#f59e0b' };
 
-        ['urgent', 'work', 'routine', 'personal', 'office'].forEach(cat => {
-            if (counts[cat] > 0) {
-                const slicePct = (counts[cat] / total) * 100;
-                gradientStops.push(`${colors[cat]} ${currentPct}% ${currentPct + slicePct}%`);
+        CATEGORIES.forEach(cat => {
+            if (counts[cat.id] > 0) {
+                const slicePct = (counts[cat.id] / total) * 100;
+                gradientStops.push(`${cat.color} ${currentPct}% ${currentPct + slicePct}%`);
                 currentPct += slicePct;
             }
         });
