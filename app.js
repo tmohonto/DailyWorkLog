@@ -734,7 +734,18 @@ function handleEditSave(e) {
 }
 
 // Dynamic Shortcuts
-let userShortcuts = JSON.parse(localStorage.getItem('userShortcuts')) || ["Ghumabo", "Office", "Commute", "Breakfast", "Lunch", "Dinner", "Gym"];
+let userShortcuts = JSON.parse(localStorage.getItem('userShortcuts')) || [
+    { name: "Ghumabo", cat: "personal" },
+    { name: "Office", cat: "office" },
+    { name: "Commute", cat: "routine" },
+    { name: "Breakfast", cat: "personal" },
+    { name: "Lunch", cat: "personal" },
+    { name: "Dinner", cat: "personal" },
+    { name: "Gym", cat: "routine" }
+];
+
+// Migration for old string-based shortcuts
+userShortcuts = userShortcuts.map(s => typeof s === 'string' ? { name: s, cat: 'personal' } : s);
 
 function saveShortcuts() {
     localStorage.setItem('userShortcuts', JSON.stringify(userShortcuts));
@@ -803,11 +814,14 @@ function renderInlineInput(container, dateStr, hour) {
     const renderChips = () => {
         quickAddContainer.innerHTML = '';
         
-        userShortcuts.forEach((taskName, index) => {
+        userShortcuts.forEach((shortcut, index) => {
             const chip = document.createElement('div');
-            chip.className = 'quick-add-chip';
+            chip.className = `quick-add-chip vertical-chip cat-border-${shortcut.cat}`;
             chip.innerHTML = `
-                <span>${taskName}</span>
+                <div class="chip-content">
+                    <span class="chip-cat-dot cat-dot-${shortcut.cat}"></span>
+                    <span class="chip-text">${shortcut.name}</span>
+                </div>
                 <span class="chip-delete" title="Delete Shortcut">&times;</span>
             `;
             
@@ -819,31 +833,32 @@ function renderInlineInput(container, dateStr, hour) {
                     renderChips();
                     return;
                 }
-                input.value = taskName;
-                if(taskName === "Office") select.value = "office";
-                if(["Ghumabo", "Lunch", "Dinner", "Breakfast"].includes(taskName)) select.value = "personal";
-                if(taskName === "Gym") select.value = "routine";
+                input.value = shortcut.name;
+                select.value = shortcut.cat;
                 input.focus();
             });
             
             quickAddContainer.appendChild(chip);
         });
 
-        // Add New Shortcut Chip
-        const addChip = document.createElement('div');
-        addChip.className = 'quick-add-chip add-shortcut-chip';
-        addChip.innerHTML = '<span>+</span>';
-        addChip.title = "Add new shortcut";
-        addChip.addEventListener('click', () => {
-            const newName = prompt("Enter new shortcut name:");
-            if (newName && newName.trim()) {
-                userShortcuts.push(newName.trim());
+        // Add New Shortcut Button
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'add-shortcut-btn';
+        addBtn.innerHTML = `<span>+ Add Current as Shortcut</span>`;
+        addBtn.addEventListener('click', () => {
+            const name = input.value.trim() || prompt("Enter shortcut name:");
+            if (name) {
+                userShortcuts.push({ name: name, cat: select.value });
                 saveShortcuts();
                 renderChips();
+            } else {
+                alert("Please enter a name for the shortcut.");
             }
         });
-        quickAddContainer.appendChild(addChip);
+        quickAddContainer.appendChild(addBtn);
     };
+    renderChips();
 
     // Properties Row (Amount + Category)
     const propertiesRow = document.createElement('div');
