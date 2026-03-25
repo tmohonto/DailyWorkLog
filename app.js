@@ -422,34 +422,13 @@ function renderDayView() {
                     txt.innerHTML = `${task.desc} ${task.amount ? `<span class="task-amount-tag">৳${task.amount.toFixed(2)}</span>` : ''}`;
                     txt.title = "Double-click to edit";
 
-                    txt.addEventListener('dblclick', (e) => {
+                    const editBtn = document.createElement('div');
+                    editBtn.className = 'task-edit';
+                    editBtn.innerHTML = '&#9998;'; // Pencil icon
+                    editBtn.title = "Edit Task";
+                    editBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const input = document.createElement('input');
-                        input.type = 'text';
-                        input.value = task.desc;
-                        input.className = 'inline-input';
-                        input.style.width = '100%';
-                        input.style.background = 'rgba(0,0,0,0.2)';
-                        input.style.padding = '4px 8px';
-                        input.style.borderRadius = '4px';
-
-                        const saveEdit = () => {
-                            const newVal = input.value.trim();
-                            if (newVal !== '') {
-                                task.desc = newVal;
-                                saveData();
-                            }
-                            renderDayView();
-                        };
-
-                        input.addEventListener('blur', saveEdit);
-                        input.addEventListener('keydown', (ke) => {
-                            if (ke.key === 'Enter') saveEdit();
-                            else if (ke.key === 'Escape') renderDayView();
-                        });
-
-                        taskBtn.replaceChild(input, txt);
-                        input.focus();
+                        openEditModal(task.id);
                     });
 
                     const del = document.createElement('div');
@@ -467,6 +446,7 @@ function renderDayView() {
 
                     taskBtn.appendChild(cb);
                     taskBtn.appendChild(txt);
+                    taskBtn.appendChild(editBtn);
                     taskBtn.appendChild(del);
                     tasksContainer.appendChild(taskBtn);
                 });
@@ -491,24 +471,6 @@ function renderDayView() {
             row.appendChild(tasksContainer);
             scheduleList.appendChild(row);
 
-            if (typeof Sortable !== 'undefined') {
-                tasksContainer.dataset.hour = hour;
-                new Sortable(tasksContainer, {
-                    group: 'shared',
-                    animation: 150,
-                    draggable: '.task-item',
-                    onEnd: function (evt) {
-                        const fromHour = evt.from.dataset.hour;
-                        const toHour = evt.to.dataset.hour;
-                        if (!fromHour || !toHour) return;
-                        const movedTask = workData[dateStr][selectedPeriod][fromHour].splice(evt.oldDraggableIndex, 1)[0];
-                        if (!workData[dateStr][selectedPeriod][toHour]) workData[dateStr][selectedPeriod][toHour] = [];
-                        workData[dateStr][selectedPeriod][toHour].splice(evt.newDraggableIndex, 0, movedTask);
-                        saveData();
-                        renderDayView();
-                    }
-                });
-            }
         });
     }
 
