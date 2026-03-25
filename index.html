@@ -180,10 +180,17 @@
                                 <form id="expense-form" class="inline-form">
                                     <input type="text" id="expense-desc" class="inline-input" placeholder="What did you buy?" required>
                                     <input type="number" id="expense-amount" class="inline-input" placeholder="Amount" step="0.01" required>
-                                    <div style="display: flex; gap: 0.5rem; align-items: center; width: 100%;">
-                                        <select id="expense-category" class="inline-input" style="flex: 1;"></select>
-                                        <button type="button" class="manage-cats-trigger" title="Manage Types" style="padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); cursor: pointer;">⚙️</button>
-                                    </div>
+                                    <select id="expense-category" class="inline-input">
+                                        <option value="personal" selected>🟢 Personal</option>
+                                        <option value="office">🏢 Office</option>
+                                        <option value="routine">🔵 Routine</option>
+                                        <option value="work">💼 Work</option>
+                                        <option value="urgent">🔴 Urgent</option>
+                                        <option value="learning">📚 Learning</option>
+                                        <option value="meeting">🤝 Meeting</option>
+                                        <option value="heal">❤️ Heal</option>
+                                        <option value="planning">📋 Planning</option>
+                                    </select>
                                     <select id="expense-time" class="inline-input" required>
                                         <option value="" disabled selected>Pick Time Slot</option>
                                         <!-- Time slots populated by JS -->
@@ -337,10 +344,7 @@
                     </div>
                     <div class="form-group">
                         <label for="edit-category">Work Type</label>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <select id="edit-category" class="glass-select" style="flex: 1;"></select>
-                            <button type="button" class="manage-cats-trigger" title="Manage Types" style="padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); cursor: pointer;">⚙️</button>
-                        </div>
+                        <select id="edit-category" class="glass-select"></select>
                     </div>
                     <div class="form-group">
                         <label for="edit-amount">Amount (৳)</label>
@@ -354,31 +358,6 @@
             </div>
         </div>
 
-    <!-- Category Management Modal -->
-    <div id="cat-modal-overlay" class="modal-overlay">
-        <div class="modal glass-panel">
-            <div class="modal-header">
-                <h3>Manage Work Types</h3>
-                <button id="close-cat-modal" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="cat-list" class="category-list">
-                    <!-- Categories will be rendered here -->
-                </div>
-                <hr style="opacity: 0.1; margin: 1.5rem 0;">
-                <form id="add-cat-form">
-                    <div class="form-group">
-                        <label>Add New Type</label>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="text" id="new-cat-label" placeholder="Name" required style="flex-grow: 1;">
-                            <input type="color" id="new-cat-color" value="#6366f1" style="width: 50px; padding: 2px;">
-                            <button type="submit" class="inline-btn" style="width:auto; padding: 0 1rem;">Add</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
     </div>
 
     <!-- JS -->

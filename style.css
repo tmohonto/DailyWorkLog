@@ -1123,96 +1123,12 @@ circle {
     gap: 12px;
 }
 
-.category-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 1.5rem;
-    max-height: 250px;
-    overflow-y: auto;
-    padding-right: 8px;
-}
-
-.category-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-md);
-    transition: var(--transition);
-}
-
-.category-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-.cat-item-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.cat-item-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-}
-
-.cat-item-label {
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--text-primary);
-}
-
-.btn-delete-cat {
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 1.2rem;
-    padding: 4px;
-    transition: var(--transition);
-}
-
-.btn-delete-cat:hover {
-    color: var(--danger);
-    transform: scale(1.1);
-}
-
 /* Base Category Border Rule (Dynamic colors injected via JS) */
 .task-item[class*="cat-"] {
     border-left-width: 4px;
     border-left-style: solid;
 }
 
-.manage-cats-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 36px;
-    height: 36px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: var(--transition);
-    font-size: 1.1rem;
-    padding: 0;
-}
-
-.manage-cats-trigger:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: var(--accent);
-    transform: translateY(-1px);
-}
-
-.form-group-row {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    width: 100%;
-}
 
 .add-shortcut-btn {
     width: 100%;
@@ -1242,12 +1158,20 @@ circle {
 .cat-dot-routine  { background: #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
 .cat-dot-work     { background: #8b5cf6; box-shadow: 0 0 8px rgba(139, 92, 246, 0.4); }
 .cat-dot-urgent   { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+.cat-dot-learning { background: #ec4899; box-shadow: 0 0 8px rgba(236, 72, 153, 0.4); }
+.cat-dot-meeting  { background: #06b6d4; box-shadow: 0 0 8px rgba(6, 182, 212, 0.4); }
+.cat-dot-heal     { background: #f43f5e; box-shadow: 0 0 8px rgba(244, 63, 94, 0.4); }
+.cat-dot-planning { background: #6366f1; box-shadow: 0 0 8px rgba(99, 102, 241, 0.4); }
 
 .cat-border-personal { border-left: 4px solid #10b981; }
 .cat-border-office   { border-left: 4px solid #f59e0b; }
 .cat-border-routine  { border-left: 4px solid #3b82f6; }
 .cat-border-work     { border-left: 4px solid #8b5cf6; }
 .cat-border-urgent   { border-left: 4px solid #ef4444; }
+.cat-border-learning { border-left: 4px solid #ec4899; }
+.cat-border-meeting  { border-left: 4px solid #06b6d4; }
+.cat-border-heal     { border-left: 4px solid #f43f5e; }
+.cat-border-planning { border-left: 4px solid #6366f1; }
 
 .inline-input {
     flex-grow: 1;

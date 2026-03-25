@@ -9,29 +9,20 @@ const PM_HOURS = ["12:00-12:59", "1:00-1:59", "2:00-2:59", "3:00-3:59", "4:00-4:
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 // Data Store
 const STORAGE_KEY = 'WorkflowData';
-const CAT_STORAGE_KEY = 'UserCategories';
-
 var workData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
-// Dynamic Categories
-const defaultCategories = [
+// Static Categories (Expanded)
+const CATEGORIES = [
     { id: 'personal', label: 'Personal', color: '#10b981', icon: '🟢' },
     { id: 'office', label: 'Office', color: '#f59e0b', icon: '🏢' },
     { id: 'routine', label: 'Routine', color: '#3b82f6', icon: '🔵' },
     { id: 'work', label: 'Work', color: '#8b5cf6', icon: '💼' },
-    { id: 'urgent', label: 'Urgent', color: '#ef4444', icon: '🔴' }
+    { id: 'urgent', label: 'Urgent', color: '#ef4444', icon: '🔴' },
+    { id: 'learning', label: 'Learning', color: '#ec4899', icon: '📚' },
+    { id: 'meeting', label: 'Meeting', color: '#06b6d4', icon: '🤝' },
+    { id: 'heal', label: 'Heal', color: '#f43f5e', icon: '❤️' },
+    { id: 'planning', label: 'Planning', color: '#6366f1', icon: '📋' }
 ];
-
-let userCategories = JSON.parse(localStorage.getItem(CAT_STORAGE_KEY)) || defaultCategories;
-
-function saveCategories() {
-    localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(userCategories));
-    updateCategoryStyles();
-    renderCategorySelects();
-    renderDayView();
-    renderExpensesView();
-    renderCategoryList(); // Update the management list
-}
 
 function updateCategoryStyles() {
     let styleTag = document.getElementById('dynamic-category-styles');
@@ -42,7 +33,7 @@ function updateCategoryStyles() {
     }
 
     let css = '';
-    userCategories.forEach(cat => {
+    CATEGORIES.forEach(cat => {
         css += `
             .cat-${cat.id} { border-left-color: ${cat.color} !important; border-left-width: 4px; border-left-style: solid; }
             .cat-dot-${cat.id} { background-color: ${cat.color}; box-shadow: 0 0 8px ${cat.color}66; }
@@ -57,7 +48,7 @@ function renderCategorySelects() {
     selects.forEach(select => {
         const currentVal = select.value;
         let html = '';
-        userCategories.forEach(cat => {
+        CATEGORIES.forEach(cat => {
             html += `<option value="${cat.id}">${cat.icon || '●'} ${cat.label}</option>`;
         });
         select.innerHTML = html;
@@ -276,33 +267,7 @@ const MOTIVATIONAL_QUOTES = [
 ];
 
 function renderCategoryList() {
-    const catList = document.getElementById('cat-list');
-    if (!catList) return;
-    catList.innerHTML = '';
-    userCategories.forEach(cat => {
-        const item = document.createElement('div');
-        item.className = 'category-item';
-        item.innerHTML = `
-            <div class="cat-item-info">
-                <div class="cat-item-dot" style="background-color: ${cat.color}"></div>
-                <span class="cat-item-label">${cat.label}</span>
-            </div>
-            <div class="btn-delete-cat" title="Delete Category">&times;</div>
-        `;
-        
-        item.querySelector('.btn-delete-cat').addEventListener('click', () => {
-            if (userCategories.length <= 1) {
-                alert("You must have at least one category.");
-                return;
-            }
-            if (confirm(`Delete category "${cat.label}"? Tasks using this category will remain but may lose their color.`)) {
-                userCategories = userCategories.filter(c => c.id !== cat.id);
-                saveCategories();
-            }
-        });
-        
-        catList.appendChild(item);
-    });
+    // Reverted to static categories - this function is no longer needed
 }
 
 function updateLiveClock() {
@@ -342,54 +307,6 @@ function initApp() {
 
     const cancelBtnModal = document.getElementById('cancel-edit-btn');
     if (cancelBtnModal) cancelBtnModal.addEventListener('click', closeEditModal);
-
-    // Category Management Modal Listeners
-    const closeCatModalBtn = document.getElementById('close-cat-modal');
-    const catModalOverlay = document.getElementById('cat-modal-overlay');
-    const addCatForm = document.getElementById('add-cat-form');
-
-    // Use event delegation for the integrated ⚙️ triggers
-    document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('manage-cats-trigger')) {
-            renderCategoryList();
-            catModalOverlay.classList.add('active');
-        }
-    });
-
-    if (closeCatModalBtn) {
-        closeCatModalBtn.addEventListener('click', () => {
-            catModalOverlay.classList.remove('active');
-        });
-    }
-
-    if (catModalOverlay) {
-        catModalOverlay.addEventListener('click', (e) => {
-            // Closes modal if user clicks the dark overlay area
-            if (e.target === catModalOverlay) {
-                catModalOverlay.classList.remove('active');
-            }
-        });
-    }
-
-    if (addCatForm) {
-        addCatForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const labelEl = document.getElementById('new-cat-label');
-            const colorEl = document.getElementById('new-cat-color');
-            const label = labelEl.value.trim();
-            const color = colorEl.value;
-            if (label) {
-                const id = label.toLowerCase().replace(/[^a-z0-9]/g, '-');
-                if (userCategories.find(c => c.id === id)) {
-                    alert("Category already exists!");
-                    return;
-                }
-                userCategories.push({ id, label, color, icon: '●' });
-                saveCategories();
-                addCatForm.reset();
-            }
-        });
-    }
 
     // Initial Category Setup
     updateCategoryStyles();
@@ -868,28 +785,10 @@ function renderInlineInput(container, dateStr, hour) {
     input.placeholder = 'What needs to be done?';
     input.required = true;
 
-    const catGroup = document.createElement('div');
-    catGroup.style.display = 'flex';
-    catGroup.style.gap = '0.3rem';
-    catGroup.style.alignItems = 'center';
-
     const select = document.createElement('select');
     select.className = 'inline-select';
-    select.style.flex = '1';
     
     // Dynamic categories will be populated by renderCategorySelects()
-    catGroup.appendChild(select);
-
-    const manageBtn = document.createElement('button');
-    manageBtn.type = 'button';
-    manageBtn.className = 'manage-cats-trigger';
-    manageBtn.innerHTML = '⚙️';
-    manageBtn.style.padding = '4px 6px';
-    manageBtn.style.background = 'rgba(255,255,255,0.05)';
-    manageBtn.style.border = '1px solid var(--glass-border)';
-    manageBtn.style.borderRadius = 'var(--radius-sm)';
-    catGroup.appendChild(manageBtn);
-
     renderCategorySelects();
 
     const amountInput = document.createElement('input');
@@ -920,10 +819,8 @@ function renderInlineInput(container, dateStr, hour) {
         saveInlineTask(dateStr, selectedPeriod, hour, input.value, select.value, amt);
     });
 
-    const mainRow = document.createElement('div');
-    mainRow.className = 'inline-main-row';
     mainRow.appendChild(input);
-    mainRow.appendChild(catGroup);
+    mainRow.appendChild(select);
     mainRow.appendChild(amountInput);
     mainRow.appendChild(saveBtn);
     mainRow.appendChild(cancelBtn);
