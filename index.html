@@ -161,7 +161,6 @@
                                 <button class="toggle-btn" data-period="PM">PM</button>
                             </div>
                             <button class="toggle-btn expense-toggle-btn" id="show-expenses">Expenses</button>
-                            <button class="toggle-btn" id="manage-cats-btn" style="border: 1px dashed var(--accent); color: var(--accent); margin-left: auto; padding: 0.5rem 1rem;">⚙️ Types</button>
                         </div>
 
                         <div id="empty-day-state" class="empty-day-state" style="display: none;">
@@ -181,13 +180,10 @@
                                 <form id="expense-form" class="inline-form">
                                     <input type="text" id="expense-desc" class="inline-input" placeholder="What did you buy?" required>
                                     <input type="number" id="expense-amount" class="inline-input" placeholder="Amount" step="0.01" required>
-                                    <select id="expense-category" class="inline-input">
-                                        <option value="routine">🔵 Routine</option>
-                                        <option value="work">💼 Work</option>
-                                        <option value="urgent">🔴 Urgent</option>
-                                        <option value="office">🏢 Office</option>
-                                        <option value="personal" selected>🟢 Personal</option>
-                                    </select>
+                                    <div style="display: flex; gap: 0.5rem; align-items: center; width: 100%;">
+                                        <select id="expense-category" class="inline-input" style="flex: 1;"></select>
+                                        <button type="button" class="manage-cats-trigger" title="Manage Types" style="padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); cursor: pointer;">⚙️</button>
+                                    </div>
                                     <select id="expense-time" class="inline-input" required>
                                         <option value="" disabled selected>Pick Time Slot</option>
                                         <!-- Time slots populated by JS -->
@@ -341,7 +337,10 @@
                     </div>
                     <div class="form-group">
                         <label for="edit-category">Work Type</label>
-                        <select id="edit-category" class="glass-select"></select>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <select id="edit-category" class="glass-select" style="flex: 1;"></select>
+                            <button type="button" class="manage-cats-trigger" title="Manage Types" style="padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); cursor: pointer;">⚙️</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="edit-amount">Amount (৳)</label>

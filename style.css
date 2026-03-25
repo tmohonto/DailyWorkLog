@@ -1185,6 +1185,35 @@ circle {
     border-left-style: solid;
 }
 
+.manage-cats-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 1.1rem;
+    padding: 0;
+}
+
+.manage-cats-trigger:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.form-group-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    width: 100%;
+}
+
 .add-shortcut-btn {
     width: 100%;
     padding: 12px;

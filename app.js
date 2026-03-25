@@ -53,7 +53,7 @@ function updateCategoryStyles() {
 }
 
 function renderCategorySelects() {
-    const selects = document.querySelectorAll('.inline-select, #edit-category');
+    const selects = document.querySelectorAll('.inline-select, #edit-category, #expense-category');
     selects.forEach(select => {
         const currentVal = select.value;
         let html = '';
@@ -343,18 +343,18 @@ function initApp() {
     const cancelBtnModal = document.getElementById('cancel-edit-btn');
     if (cancelBtnModal) cancelBtnModal.addEventListener('click', closeEditModal);
 
-    // Category Management Listeners
-    const manageCatsBtn = document.getElementById('manage-cats-btn');
+    // Category Management Modal Listeners
     const closeCatModalBtn = document.getElementById('close-cat-modal');
     const catModalOverlay = document.getElementById('cat-modal-overlay');
     const addCatForm = document.getElementById('add-cat-form');
 
-    if (manageCatsBtn) {
-        manageCatsBtn.addEventListener('click', () => {
+    // Use event delegation for the integrated ⚙️ triggers
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('manage-cats-trigger')) {
             renderCategoryList();
             catModalOverlay.classList.add('active');
-        });
-    }
+        }
+    });
 
     if (closeCatModalBtn) {
         closeCatModalBtn.addEventListener('click', () => {
@@ -364,15 +364,20 @@ function initApp() {
 
     if (catModalOverlay) {
         catModalOverlay.addEventListener('click', (e) => {
-            if (e.target === catModalOverlay) catModalOverlay.classList.remove('active');
+            // Closes modal if user clicks the dark overlay area
+            if (e.target === catModalOverlay) {
+                catModalOverlay.classList.remove('active');
+            }
         });
     }
 
     if (addCatForm) {
         addCatForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const label = document.getElementById('new-cat-label').value.trim();
-            const color = document.getElementById('new-cat-color').value;
+            const labelEl = document.getElementById('new-cat-label');
+            const colorEl = document.getElementById('new-cat-color');
+            const label = labelEl.value.trim();
+            const color = colorEl.value;
             if (label) {
                 const id = label.toLowerCase().replace(/[^a-z0-9]/g, '-');
                 if (userCategories.find(c => c.id === id)) {
@@ -863,10 +868,28 @@ function renderInlineInput(container, dateStr, hour) {
     input.placeholder = 'What needs to be done?';
     input.required = true;
 
+    const catGroup = document.createElement('div');
+    catGroup.style.display = 'flex';
+    catGroup.style.gap = '0.3rem';
+    catGroup.style.alignItems = 'center';
+
     const select = document.createElement('select');
     select.className = 'inline-select';
+    select.style.flex = '1';
     
     // Dynamic categories will be populated by renderCategorySelects()
+    catGroup.appendChild(select);
+
+    const manageBtn = document.createElement('button');
+    manageBtn.type = 'button';
+    manageBtn.className = 'manage-cats-trigger';
+    manageBtn.innerHTML = '⚙️';
+    manageBtn.style.padding = '4px 6px';
+    manageBtn.style.background = 'rgba(255,255,255,0.05)';
+    manageBtn.style.border = '1px solid var(--glass-border)';
+    manageBtn.style.borderRadius = 'var(--radius-sm)';
+    catGroup.appendChild(manageBtn);
+
     renderCategorySelects();
 
     const amountInput = document.createElement('input');
@@ -900,6 +923,10 @@ function renderInlineInput(container, dateStr, hour) {
     const mainRow = document.createElement('div');
     mainRow.className = 'inline-main-row';
     mainRow.appendChild(input);
+    mainRow.appendChild(catGroup);
+    mainRow.appendChild(amountInput);
+    mainRow.appendChild(saveBtn);
+    mainRow.appendChild(cancelBtn);
     form.appendChild(mainRow);
     
     // Quick Add Chips
