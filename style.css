@@ -1123,32 +1123,66 @@ circle {
     gap: 12px;
 }
 
-.chip-cat-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    display: block;
+.category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 8px;
 }
 
-.chip-text {
+.category-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+}
+
+.category-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.cat-item-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cat-item-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+}
+
+.cat-item-label {
+    font-weight: 600;
     font-size: 0.95rem;
-    font-weight: 500;
     color: var(--text-primary);
 }
 
-.chip-delete {
-    font-size: 1.4rem;
-    line-height: 1;
+.btn-delete-cat {
     color: var(--text-muted);
-    padding: 6px 10px;
-    margin-right: -8px;
-    transition: var(--transition);
     cursor: pointer;
+    font-size: 1.2rem;
+    padding: 4px;
+    transition: var(--transition);
 }
 
-.chip-delete:hover {
+.btn-delete-cat:hover {
     color: var(--danger);
     transform: scale(1.1);
+}
+
+/* Base Category Border Rule (Dynamic colors injected via JS) */
+.task-item[class*="cat-"] {
+    border-left-width: 4px;
+    border-left-style: solid;
 }
 
 .add-shortcut-btn {

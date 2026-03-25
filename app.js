@@ -7,10 +7,63 @@ let selectedPeriod = new Date().getHours() >= 12 ? 'PM' : 'AM';
 const AM_HOURS = ["12:00-12:59", "1:00-1:59", "2:00-2:59", "3:00-3:59", "4:00-4:59", "5:00-5:59", "6:00-6:59", "7:00-7:59", "8:00-8:59", "9:00-9:59", "10:00-10:59", "11:00-11:59"];
 const PM_HOURS = ["12:00-12:59", "1:00-1:59", "2:00-2:59", "3:00-3:59", "4:00-4:59", "5:00-5:59", "6:00-6:59", "7:00-7:59", "8:00-8:59", "9:00-9:59", "10:00-10:59", "11:00-11:59"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const STORAGE_KEY = 'WorkflowData';
-
 // Data Store
+const STORAGE_KEY = 'WorkflowData';
+const CAT_STORAGE_KEY = 'UserCategories';
+
 var workData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+
+// Dynamic Categories
+const defaultCategories = [
+    { id: 'personal', label: 'Personal', color: '#10b981', icon: '🟢' },
+    { id: 'office', label: 'Office', color: '#f59e0b', icon: '🏢' },
+    { id: 'routine', label: 'Routine', color: '#3b82f6', icon: '🔵' },
+    { id: 'work', label: 'Work', color: '#8b5cf6', icon: '💼' },
+    { id: 'urgent', label: 'Urgent', color: '#ef4444', icon: '🔴' }
+];
+
+let userCategories = JSON.parse(localStorage.getItem(CAT_STORAGE_KEY)) || defaultCategories;
+
+function saveCategories() {
+    localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(userCategories));
+    updateCategoryStyles();
+    renderCategorySelects();
+    renderDayView();
+    renderExpensesView();
+    renderCategoryList(); // Update the management list
+}
+
+function updateCategoryStyles() {
+    let styleTag = document.getElementById('dynamic-category-styles');
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'dynamic-category-styles';
+        document.head.appendChild(styleTag);
+    }
+
+    let css = '';
+    userCategories.forEach(cat => {
+        css += `
+            .cat-${cat.id} { border-left-color: ${cat.color} !important; border-left-width: 4px; border-left-style: solid; }
+            .cat-dot-${cat.id} { background-color: ${cat.color}; box-shadow: 0 0 8px ${cat.color}66; }
+            .cat-border-${cat.id} { border-left: 4px solid ${cat.color}; }
+        `;
+    });
+    styleTag.innerHTML = css;
+}
+
+function renderCategorySelects() {
+    const selects = document.querySelectorAll('.inline-select, #edit-category');
+    selects.forEach(select => {
+        const currentVal = select.value;
+        let html = '';
+        userCategories.forEach(cat => {
+            html += `<option value="${cat.id}">${cat.icon || '●'} ${cat.label}</option>`;
+        });
+        select.innerHTML = html;
+        if (currentVal) select.value = currentVal;
+    });
+}
 
 // Migrate old data on load (convert string tasks to objects)
 for (let d in workData) {
@@ -222,6 +275,36 @@ const MOTIVATIONAL_QUOTES = [
     "The way to get started is to quit talking and begin doing."
 ];
 
+function renderCategoryList() {
+    const catList = document.getElementById('cat-list');
+    if (!catList) return;
+    catList.innerHTML = '';
+    userCategories.forEach(cat => {
+        const item = document.createElement('div');
+        item.className = 'category-item';
+        item.innerHTML = `
+            <div class="cat-item-info">
+                <div class="cat-item-dot" style="background-color: ${cat.color}"></div>
+                <span class="cat-item-label">${cat.label}</span>
+            </div>
+            <div class="btn-delete-cat" title="Delete Category">&times;</div>
+        `;
+        
+        item.querySelector('.btn-delete-cat').addEventListener('click', () => {
+            if (userCategories.length <= 1) {
+                alert("You must have at least one category.");
+                return;
+            }
+            if (confirm(`Delete category "${cat.label}"? Tasks using this category will remain but may lose their color.`)) {
+                userCategories = userCategories.filter(c => c.id !== cat.id);
+                saveCategories();
+            }
+        });
+        
+        catList.appendChild(item);
+    });
+}
+
 function updateLiveClock() {
     const clockEl = document.getElementById('live-clock');
     if (!clockEl) return;
@@ -259,6 +342,53 @@ function initApp() {
 
     const cancelBtnModal = document.getElementById('cancel-edit-btn');
     if (cancelBtnModal) cancelBtnModal.addEventListener('click', closeEditModal);
+
+    // Category Management Listeners
+    const manageCatsBtn = document.getElementById('manage-cats-btn');
+    const closeCatModalBtn = document.getElementById('close-cat-modal');
+    const catModalOverlay = document.getElementById('cat-modal-overlay');
+    const addCatForm = document.getElementById('add-cat-form');
+
+    if (manageCatsBtn) {
+        manageCatsBtn.addEventListener('click', () => {
+            renderCategoryList();
+            catModalOverlay.classList.add('active');
+        });
+    }
+
+    if (closeCatModalBtn) {
+        closeCatModalBtn.addEventListener('click', () => {
+            catModalOverlay.classList.remove('active');
+        });
+    }
+
+    if (catModalOverlay) {
+        catModalOverlay.addEventListener('click', (e) => {
+            if (e.target === catModalOverlay) catModalOverlay.classList.remove('active');
+        });
+    }
+
+    if (addCatForm) {
+        addCatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const label = document.getElementById('new-cat-label').value.trim();
+            const color = document.getElementById('new-cat-color').value;
+            if (label) {
+                const id = label.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                if (userCategories.find(c => c.id === id)) {
+                    alert("Category already exists!");
+                    return;
+                }
+                userCategories.push({ id, label, color, icon: '●' });
+                saveCategories();
+                addCatForm.reset();
+            }
+        });
+    }
+
+    // Initial Category Setup
+    updateCategoryStyles();
+    renderCategorySelects();
 
     setInterval(() => {
         if (currentView === 'day-view') {
@@ -652,7 +782,12 @@ function openEditModal(id) {
 
     editingId = id;
     document.getElementById('edit-desc').value = target.desc;
-    document.getElementById('edit-amount').value = target.amount;
+    
+    // Populate category dropdown
+    renderCategorySelects();
+    document.getElementById('edit-category').value = target.category || userCategories[0].id;
+    
+    document.getElementById('edit-amount').value = target.amount || 0;
     document.getElementById('edit-modal-overlay').classList.add('active');
 }
 
@@ -688,8 +823,10 @@ function handleEditSave(e) {
     if (target) {
         target.desc = newDesc || target.desc;
         target.amount = isNaN(newAmount) ? 0 : newAmount;
+        target.category = document.getElementById('edit-category').value;
         saveData();
         renderDayView();
+        renderExpensesView();
     }
 
     closeEditModal();
@@ -728,13 +865,9 @@ function renderInlineInput(container, dateStr, hour) {
 
     const select = document.createElement('select');
     select.className = 'inline-select';
-    select.innerHTML = `
-        <option value="personal" selected>🟢 Personal</option>
-        <option value="office">🏢 Office</option>
-        <option value="routine">🔵 Routine</option>
-        <option value="work">💼 Work</option>
-        <option value="urgent">🔴 Urgent</option>
-    `;
+    
+    // Dynamic categories will be populated by renderCategorySelects()
+    renderCategorySelects();
 
     const amountInput = document.createElement('input');
     amountInput.type = 'number';
