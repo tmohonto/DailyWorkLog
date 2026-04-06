@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Daily Work Log</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css?v=5">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WorkFlow">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="apple-touch-startup-image" href="icons/splash.png">
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+    <!-- Login Overlay -->
+    <div id="login-overlay">
+        <div class="login-card">
+            <div class="cube-container">
+                <div class="cube">
+                    <div class="face front">W</div>
+                    <div class="face back">F</div>
+                    <div class="face right"></div>
+                    <div class="face left"></div>
+                    <div class="face top"></div>
+                    <div class="face bottom"></div>
+                </div>
+            </div>
+            <h2 style="filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.6)); letter-spacing: 1px; margin-bottom: 1rem;">WorkFlow</h2>
+            <p style="font-size: 1.05rem; color: var(--text-primary); margin-bottom: 1.5rem; font-weight: 500;">Built for discipline and consistency.</p>
+            
+            <form id="auth-form" class="login-form">
+                <input type="email" id="auth-email" class="login-input" placeholder="Email address" required>
+                <input type="password" id="auth-password" class="login-input" placeholder="Password" required>
+                <button type="submit" id="auth-submit-btn" class="login-btn">Sign In</button>
+            </form>
+            
+            <div class="login-divider">OR</div>
+            
+            <button id="google-login-btn" class="google-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Continue with Google
+            </button>
+            
+            <div class="auth-switch">
+                <span id="auth-toggle-mode">Don't have an account? Sign Up</span>
+            </div>
+        </div>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute;">
+        <defs>
+            <clipPath id="scallop-mask" clipPathUnits="objectBoundingBox">
+                <path
+                    d="M0.5,0.02 C0.58,0.02 0.63,0.06 0.68,0.08 C0.73,0.11 0.81,0.09 0.86,0.14 C0.91,0.19 0.89,0.27 0.92,0.32 C0.94,0.37 0.98,0.42 0.98,0.5 C0.98,0.58 0.94,0.63 0.92,0.68 C0.89,0.73 0.91,0.81 0.86,0.86 C0.81,0.91 0.73,0.89 0.68,0.92 C0.63,0.94 0.58,0.98 0.5,0.98 C0.42,0.98 0.37,0.94 0.32,0.92 C0.27,0.89 0.19,0.91 0.14,0.86 C0.09,0.81 0.11,0.73 0.08,0.68 C0.06,0.63 0.02,0.58 0.02,0.5 C0.02,0.42 0.06,0.37 0.08,0.32 C0.11,0.27 0.09,0.19 0.14,0.14 C0.19,0.09 0.27,0.11 0.32,0.08 C0.37,0.06 0.42,0.02 0.5,0.02 Z">
+                </path>
+            </clipPath>
+        </defs>
+    </svg>
+    <canvas id="bg-canvas"></canvas>
+    <div class="background-animation"></div>
+
+    <div class="app-container">
+        <!-- Header & Navigation -->
+        <header class="glass-panel main-header">
+            <div class="logo">
+                <h1>WorkFlow</h1>
+            </div>
+            <nav class="tabs desktop-only">
+                <button class="tab-btn active" data-tab="day-view">Day</button>
+                <button class="tab-btn" data-tab="month-view">Month</button>
+                <button class="tab-btn" data-tab="year-view">Year</button>
+            </nav>
+            <div class="header-actions desktop-only">
+                <button class="icon-btn theme-toggle" aria-label="Toggle Theme">
+                    <!-- Icons same as before -->
+                </button>
+                <button class="icon-btn" id="open-settings-btn" title="Google Sheet Settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+                <button class="icon-btn refresh-app" aria-label="Refresh App">
+                    <!-- Icon same as before -->
+                </button>
+                <button class="user-profile-btn" id="desktop-logout-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    Logout
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Bottom Nav for Mobile -->
+        <nav class="bottom-nav mobile-only glass-panel">
+            <div class="nav-item tab-btn active" data-tab="day-view">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>Day</span>
+            </div>
+            <div class="nav-item tab-btn" data-tab="month-view">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <span>Month</span>
+            </div>
+            <div class="nav-item tab-btn" data-tab="year-view">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>Year</span>
+            </div>
+            <div class="nav-separator"></div>
+            <div class="nav-item theme-toggle">
+                <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </div>
+            <div class="nav-item refresh-app">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            </div>
+            <div class="nav-item sheet-settings-trigger" title="Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </div>
+            <div class="nav-item" id="mobile-logout-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="content-wrapper glass-panel">
+
+            <!-- DAY VIEW -->
+            <section id="day-view" class="view-section active">
+                <div class="view-header-container">
+                    <div class="view-header">
+                        <button class="icon-btn prev-date">&lt;</button>
+                        <div class="date-time-group">
+                            <span class="live-clock-small" id="live-clock">12:00:00 AM</span>
+                            <span class="date-separator">•</span>
+                            <h2 id="current-date-display">Today's Date</h2>
+                        </div>
+                        <button class="icon-btn next-date">&gt;</button>
+                    </div>
+                    <div class="motivation-quote-small" id="motivation-quote">"Loading inspiration..."</div>
+                </div>
+
+                <div class="needed-work-container" id="needed-work-container">
+                    <!-- Dynamic state handled by app.js -->
+                    <button class="needed-work-toggle-btn" id="needed-work-toggle-btn">
+                        <span class="icon">⚡</span> Needed Work
+                    </button>
+                    
+                    <ul class="needed-work-list" id="needed-work-list" style="display: none;">
+                        <!-- Tasks will go here -->
+                    </ul>
+                    
+                    <button class="stylish-add-btn" id="stylish-add-btn" style="display: none;">
+                        + Add Urgent Work
+                    </button>
+
+                    <div class="needed-work-form-container" id="needed-work-form-container" style="display: none;">
+                        <form id="needed-work-form" class="inline-form">
+                            <input type="text" id="nw-desc" class="inline-input" placeholder="What needs to be done today?" required>
+                            <input type="time" id="nw-time" class="inline-input custom-time-input" required>
+                            <button type="submit" class="inline-btn primary-submit">Add</button>
+                            <button type="button" class="inline-btn btn-cancel" id="nw-cancel">Cancel</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="day-layout">
+                    <div class="day-main">
+                        <div class="view-toggles">
+                            <div class="ampm-toggle">
+                                <button class="toggle-btn active" data-period="AM">AM</button>
+                                <button class="toggle-btn" data-period="PM">PM</button>
+                            </div>
+                            <button class="toggle-btn expense-toggle-btn" id="show-expenses">Expenses</button>
+                        </div>
+
+                        <div id="empty-day-state" class="empty-day-state" style="display: none;">
+                            <div class="empty-icon">☕</div>
+                            <h4>Your schedule is beautifully clear</h4>
+                            <p>Select any open hour below to begin mapping out your workflow.</p>
+                        </div>
+
+                        <div class="schedule-list" id="schedule-list">
+                            <!-- Hours will be generated here by JS -->
+                        </div>
+
+                        <!-- EXPENSES VIEW (Hidden by default) -->
+                        <div id="expenses-section" class="expenses-section" style="display: none;">
+                            <div class="expense-form-container glass-panel">
+                                <h3>Log Expense</h3>
+                                <form id="expense-form" class="inline-form">
+                                    <input type="text" id="expense-desc" class="inline-input" placeholder="What did you buy?" required>
+                                    <input type="number" id="expense-amount" class="inline-input" placeholder="Amount" step="0.01" required>
+                                    <select id="expense-category" class="inline-input">
+                                        <option value="personal" selected>🟢 Personal</option>
+                                        <option value="office">🏢 Office</option>
+                                        <option value="routine">🔵 Routine</option>
+                                        <option value="work">💼 Work</option>
+                                        <option value="urgent">🔴 Urgent</option>
+                                        <option value="learning">📚 Learning</option>
+                                        <option value="meeting">🤝 Meeting</option>
+                                        <option value="heal">❤️ Heal</option>
+                                        <option value="planning">📋 Planning</option>
+                                    </select>
+                                    <select id="expense-time" class="inline-input" required>
+                                        <option value="" disabled selected>Pick Time Slot</option>
+                                        <!-- Time slots populated by JS -->
+                                    </select>
+                                    <button type="submit" class="inline-btn">Log</button>
+                                </form>
+                            </div>
+                            <div id="expenses-list" class="expenses-list">
+                                <!-- Expenses will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="day-sidebar">
+                        <div class="progress-card glass-panel" id="progress-card-container">
+
+                            <h3 class="widget-title" id="widget-date-display">Date</h3>
+
+                            <div class="material-widget">
+                                <div class="chart-wrapper">
+                                    <div class="chart-outside-text undone-text">
+                                        <span id="chart-undone-count">0</span>
+                                        <small>Undone</small>
+                                    </div>
+
+                                    <div class="progress-chart-container">
+                                        <!-- Thick Google Loading Style Chart -->
+                                        <svg class="progress-svg" viewBox="0 0 200 200">
+                                            <circle class="progress-empty" cx="100" cy="100" r="80"></circle>
+                                            <circle class="progress-undone" cx="100" cy="100" r="80"></circle>
+                                            <circle class="progress-done" id="progress-value-circle" cx="100" cy="100"
+                                                r="80"></circle>
+                                        </svg>
+                                        <div class="progress-text-center">
+                                            <div id="category-pie-chart" class="center-pie-chart"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="chart-outside-text done-text">
+                                        <span id="chart-done-count">0</span>
+                                        <small>Done</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chart-categories-outside">
+                                <div id="chart-categories-list" style="width: 100%; display: flex; flex-direction: column; gap: 4px;">
+                                    <!-- Dynamic categories generated by JS -->
+                                </div>
+                                <div id="chart-total-row" class="chart-cat" style="border-top: 1px solid var(--glass-border); padding-top: 8px; margin-top: 4px; width: 100%; justify-content: center; gap: 8px;">
+                                    <span style="color: var(--text-secondary); font-size: 0.85rem;">Total Work:</span>
+                                    <span id="chart-total-count" style="font-weight: bold; color: var(--text-primary);">0</span>
+                                </div>
+                                <div id="total-cost-row" class="chart-cat" style="width: 100%; justify-content: center; gap: 8px; margin-top: 4px;">
+                                    <span style="color: var(--text-secondary); font-size: 0.85rem;">Daily Total:</span>
+                                    <span style="font-weight: bold; color: var(--accent);">৳<span id="chart-total-cost">0.00</span></span>
+                                </div>
+                                <div id="budget-row" class="chart-cat" style="width: 100%; justify-content: center; gap: 8px; margin-top: 4px; border-top: 1px dashed var(--glass-border); padding-top: 4px;">
+                                    <span style="color: var(--text-secondary); font-size: 0.85rem;">Budget:</span>
+                                    <span style="font-weight: bold; color: var(--text-primary);">৳<span id="chart-budget-value">500</span></span>
+                                    <button id="edit-budget-btn" class="icon-btn" style="padding: 2px; opacity: 0.6;" title="Set Daily Budget">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MONTH VIEW -->
+            <section id="month-view" class="view-section">
+                <div class="view-header">
+                    <button class="icon-btn prev-month">&lt;</button>
+                    <h2 id="current-month-display">Month Year</h2>
+                    <button class="icon-btn next-month">&gt;</button>
+                </div>
+
+                <div class="weekdays-grid">
+                    <div>Sun</div>
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
+                </div>
+                <div class="calendar-grid" id="month-calendar-grid">
+                    <!-- Days will be generated here -->
+                </div>
+
+                <!-- MONTH EXPENSE CHART -->
+                <div id="month-expense-chart-container" class="glass-panel chart-section">
+                    <h3 class="chart-title">Monthly Expenses (Day-by-Day)</h3>
+                    <div id="month-expense-chart" class="bar-chart-container">
+                        <!-- Bars generated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- YEAR VIEW -->
+            <section id="year-view" class="view-section">
+                <div class="view-header">
+                    <button class="icon-btn prev-year">&lt;</button>
+                    <h2 id="current-year-display">Year</h2>
+                    <button class="icon-btn next-year">&gt;</button>
+                </div>
+
+                <div class="months-grid" id="year-months-grid">
+                    <!-- Months generated here -->
+                </div>
+
+                <!-- YEAR EXPENSE CHART -->
+                <div id="year-expense-chart-container" class="glass-panel chart-section">
+                    <h3 class="chart-title">Yearly Expenses (By Month)</h3>
+                    <div id="year-expense-chart" class="bar-chart-container">
+                        <!-- Bars generated by JS -->
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Sheet Settings Modal -->
+    <div id="settings-modal-overlay" class="modal-overlay">
+        <div class="modal glass-panel">
+            <div class="modal-header" style="justify-content: space-between;">
+                <h3>Google Sheet Sync</h3>
+                <button id="close-settings-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label style="color: var(--accent); font-weight: 600; margin-bottom: 0.5rem; display: block;">Spreadsheet Link or ID</label>
+                    <input type="text" id="settings-sheet-id" placeholder="Paste link or ID here..." style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 0.8rem; border-radius: var(--radius-sm); color: var(--text-primary); width: 100%; box-sizing: border-box;">
+                    <small style="opacity: 0.6; display: block; margin-top: 0.4rem; line-height: 1.4;">The app automatically maps to "Month Year Transactions" style tabs.</small>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Force Specific Tab Name (Optional)</label>
+                    <input type="text" id="settings-sheet-name" placeholder="e.g. 2026 Special" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 0.8rem; border-radius: var(--radius-sm); color: var(--text-primary); width: 100%; box-sizing: border-box;">
+                    <small style="opacity: 0.6; line-height: 1.4;">Leave blank for automatic detection.</small>
+                </div>
+                <div class="form-actions" style="margin-top: 1.5rem;">
+                    <button id="save-settings-btn" class="inline-btn" style="width: 100%; padding: 1rem; font-weight: 700;">Save Integration Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal-overlay" class="modal-overlay">
+        <div class="modal glass-panel">
+            <div class="modal-header">
+                <h3>Edit Task</h3>
+                <button id="close-edit-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-expense-form">
+                    <div class="form-group">
+                        <label for="edit-desc">Description</label>
+                        <input type="text" id="edit-desc" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-category">Work Type</label>
+                        <select id="edit-category" class="glass-select"></select>
+                    </div>
+                    <div class="form-group" id="edit-time-group" style="display: none;">
+                        <label for="edit-time">Start Time</label>
+                        <input type="time" id="edit-time" class="custom-time-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-amount">Amount (৳)</label>
+                        <input type="number" id="edit-amount" step="0.01" required>
+                    </div>
+                    <div class="form-actions" style="gap: 1rem;">
+                        <button type="button" class="btn-cancel" id="cancel-edit-btn" style="flex: 1; padding: 0.8rem; border-radius: var(--radius-sm);">Cancel</button>
+                        <button type="submit" class="inline-btn" style="flex: 1; padding: 0.8rem; border-radius: var(--radius-sm); font-weight: 700;">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- GAPI -->
+    <script src="https://apis.google.com/js/api.js"></script>
+
+    <!-- Configuration (Private) -->
+    <script src="config.js?v=5"></script>
+
+    <!-- JS -->
+    <script src="firebase-manager.js?v=5"></script>
+    <script src="app.js?v=5"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed', err));
+            });
+        }
+    </script>
+</body>
+
+</html>

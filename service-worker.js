@@ -1,0 +1,47 @@
+const CACHE_NAME = 'workflow-cache-v5';
+const ASSETS_TO_CACHE = [
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './firebase-manager.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js',
+  'https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js'
+];
+
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  // Use Stale-While-Revalidate or Network-First for better updates,
+  // but keeping cache-first for now while relying on version bumps.
+  event.respondWith(
+    fetch(event.request).catch(() => {
+      return caches.match(event.request);
+    })
+  );
+});
