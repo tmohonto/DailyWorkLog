@@ -27,11 +27,15 @@ window.addEventListener('load', () => {
 
 // Initialize Firebase automatically if a real API Key is provided
 let app, auth, db;
-const isValidConfig = firebaseConfig.apiKey && firebaseConfig.apiKey.startsWith("AIza");
+const isValidConfig = firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("PASTE_YOUR");
 
 if (isValidConfig) {
     try {
-        app = firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            app = firebase.initializeApp(firebaseConfig);
+        } else {
+            app = firebase.app();
+        }
         auth = firebase.auth();
         db = firebase.firestore();
     } catch (err) {
