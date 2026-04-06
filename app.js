@@ -319,6 +319,9 @@ function getFormatDate(dateObj) {
 // ---------------- DAY VIEW ----------------
 // ---------------- DAY VIEW ----------------
 function renderDayView() {
+    if (typeof renderNeededWork === 'function') {
+        renderNeededWork();
+    }
     // Header
     const isMobile = window.innerWidth <= 600;
     const options = isMobile ? { weekday: 'short', month: 'short', day: 'numeric' } : { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -654,6 +657,16 @@ function openEditModal(id) {
     document.getElementById('edit-category').value = target.category || userCategories[0].id;
     
     document.getElementById('edit-amount').value = target.amount || 0;
+    
+    const timeGroup = document.getElementById('edit-time-group');
+    if (target.exactTime) {
+        timeGroup.style.display = 'block';
+        document.getElementById('edit-time').value = target.exactTime;
+    } else {
+        timeGroup.style.display = 'none';
+        document.getElementById('edit-time').value = '';
+    }
+    
     document.getElementById('edit-modal-overlay').classList.add('active');
 }
 
@@ -690,6 +703,12 @@ function handleEditSave(e) {
         target.desc = newDesc || target.desc;
         target.amount = isNaN(newAmount) ? 0 : newAmount;
         target.category = document.getElementById('edit-category').value;
+        
+        const timeInput = document.getElementById('edit-time');
+        if (target.exactTime && timeInput && timeInput.value) {
+             target.exactTime = timeInput.value;
+        }
+        
         saveData();
         renderDayView();
         renderExpensesView();
@@ -1561,3 +1580,250 @@ function animateBg() {
 
 // Start animation loop
 animateBg();
+
+// ==========================================
+// NEEDED WORK & NOTIFICATIONS
+// ==========================================
+
+function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+        console.log("This browser does not support desktop notification");
+        return;
+    }
+    if (Notification.permission !== "denied" && Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+}
+
+function sendNotification(title, options) {
+    if (Notification.permission === "granted") {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+            navigator.serviceWorker.ready.then(function(registration) {
+                registration.showNotification(title, options);
+            });
+        } else {
+            new Notification(title, options);
+        }
+    }
+}
+
+let notificationCheckInterval = null;
+
+function startNotificationScheduler() {
+    if (notificationCheckInterval) clearInterval(notificationCheckInterval);
+    
+    notificationCheckInterval = setInterval(() => {
+        const dateStr = getFormatDate(new Date());
+        if (!workData[dateStr]) return;
+        
+        const now = new Date();
+        const currentHours = now.getHours();
+        const currentMinutes = now.getMinutes();
+        
+        ['AM', 'PM'].forEach(period => {
+            if (workData[dateStr][period]) {
+                Object.values(workData[dateStr][period]).forEach(hourSlot => {
+                    hourSlot.forEach(task => {
+                        if (task.category === 'urgent' && task.exactTime && !task.done && !task.notified) {
+                            const [hours, minutes] = task.exactTime.split(':').map(Number);
+                            const taskTimeInMinutes = hours * 60 + minutes;
+                            const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+                            const diff = taskTimeInMinutes - currentTimeInMinutes;
+                            
+                            if (diff > 0 && diff <= 10) {
+                                sendNotification("Urgent Task Starting Soon", {
+                                    body: `${task.desc} starts in ${diff} minutes!`,
+                                    icon: 'icons/icon-192.png'
+                                });
+                                task.notified = true;
+                                saveData();
+                            }
+                        }
+                    });
+                });
+            }
+        });
+    }, 60000); // Check every minute
+}
+
+function renderNeededWork() {
+    const listBody = document.getElementById('needed-work-list');
+    const toggleBtn = document.getElementById('needed-work-toggle-btn');
+    const stylishAddBtn = document.getElementById('stylish-add-btn');
+    if (!listBody || !toggleBtn) return;
+    
+    const dateStr = getFormatDate(currentDate);
+    if (!workData[dateStr]) workData[dateStr] = {};
+    
+    let urgentTasks = [];
+    ['AM', 'PM'].forEach(period => {
+        if (workData[dateStr][period]) {
+            Object.keys(workData[dateStr][period]).forEach(hourKey => {
+                workData[dateStr][period][hourKey].forEach(task => {
+                    if (task.category === 'urgent') {
+                        let parsedTime = task.exactTime;
+                        if (!parsedTime) {
+                            parsedTime = hourKey.split('-')[0] + ' ' + period;
+                        }
+                        
+                        let sortTime = task.exactTime;
+                        if (!sortTime) {
+                            let hr = parseInt(hourKey.split('-')[0].split(':')[0]);
+                            if (period === 'PM' && hr !== 12) hr += 12;
+                            if (period === 'AM' && hr === 12) hr = 0;
+                            sortTime = `${hr.toString().padStart(2, '0')}:${hourKey.split('-')[0].split(':')[1]}`;
+                        }
+                        
+                        urgentTasks.push({ ...task, displayTime: parsedTime, sortTime: sortTime });
+                    }
+                });
+            });
+        }
+    });
+    
+    listBody.innerHTML = '';
+    
+    if (urgentTasks.length === 0) {
+        toggleBtn.style.display = 'flex';
+        listBody.style.display = 'none';
+        if (stylishAddBtn) stylishAddBtn.style.display = 'none';
+    } else {
+        toggleBtn.style.display = 'none';
+        listBody.style.display = 'block';
+        if (stylishAddBtn) stylishAddBtn.style.display = 'block';
+        
+        urgentTasks.sort((a, b) => a.sortTime.localeCompare(b.sortTime));
+        urgentTasks.forEach((task) => {
+            const li = document.createElement('li');
+            li.className = `needed-work-item ${task.done ? 'done-task' : ''}`;
+            
+            li.innerHTML = `
+                <div class="needed-work-item-content">
+                    <span class="needed-work-time">${task.displayTime}</span>
+                    <span class="needed-work-desc">${task.desc}</span>
+                </div>
+                <div class="needed-work-actions">
+                    <button class="needed-work-action-btn done-btn" data-id="${task.id}" title="Toggle Complete">✔</button>
+                    <button class="needed-work-action-btn edit-nw-btn" data-id="${task.id}" title="Edit">✏️</button>
+                    <button class="needed-work-action-btn del-btn" data-id="${task.id}" title="Delete">🗑</button>
+                </div>
+            `;
+            listBody.appendChild(li);
+        });
+        
+        listBody.querySelectorAll('.done-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseFloat(e.currentTarget.dataset.id);
+                toggleUrgentTask(dateStr, id, 'done');
+                renderDayView();
+            });
+        });
+
+        listBody.querySelectorAll('.edit-nw-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseFloat(e.currentTarget.dataset.id);
+                openEditModal(id);
+            });
+        });
+        
+        listBody.querySelectorAll('.del-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (confirm("Delete this needed work?")) {
+                    const id = parseFloat(e.currentTarget.dataset.id);
+                    toggleUrgentTask(dateStr, id, 'delete');
+                    renderDayView();
+                }
+            });
+        });
+    }
+}
+
+function toggleUrgentTask(dateStr, id, action) {
+    ['AM', 'PM'].forEach(period => {
+        if (workData[dateStr][period]) {
+            Object.keys(workData[dateStr][period]).forEach(hourKey => {
+                const arr = workData[dateStr][period][hourKey];
+                const index = arr.findIndex(t => t.id === id);
+                if (index !== -1) {
+                    if (action === 'done') {
+                        arr[index].done = !arr[index].done;
+                        if (arr[index].done && typeof confetti === 'function') confetti({ particleCount: 50, spread: 40 });
+                    } else if (action === 'delete') {
+                        arr.splice(index, 1);
+                    }
+                }
+            });
+        }
+    });
+    saveData();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('needed-work-toggle-btn');
+    const stylishAddBtn = document.getElementById('stylish-add-btn');
+    const formContainer = document.getElementById('needed-work-form-container');
+    const form = document.getElementById('needed-work-form');
+    const cancelBtn = document.getElementById('nw-cancel');
+    
+    if (toggleBtn && formContainer) {
+        toggleBtn.addEventListener('click', () => {
+             formContainer.style.display = 'block';
+             toggleBtn.style.display = 'none';
+        });
+    }
+    
+    if (stylishAddBtn && formContainer) {
+        stylishAddBtn.addEventListener('click', () => {
+             formContainer.style.display = 'block';
+             stylishAddBtn.style.display = 'none';
+        });
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+             formContainer.style.display = 'none';
+             renderDayView();
+        });
+    }
+    
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Notifications disabled temporarily per user request
+            // requestNotificationPermission();
+            
+            const desc = document.getElementById('nw-desc').value.trim();
+            const time = document.getElementById('nw-time').value;
+            
+            if (desc && time) {
+                const dateStr = getFormatDate(currentDate);
+                const [hr, min] = time.split(':').map(Number);
+                const period = hr >= 12 ? 'PM' : 'AM';
+                let displayHr = hr % 12;
+                if (displayHr === 0) displayHr = 12;
+                const hourSlot = `${displayHr}:00-${displayHr}:59`;
+                
+                if (!workData[dateStr]) workData[dateStr] = { AM: {}, PM: {} };
+                if (!workData[dateStr][period]) workData[dateStr][period] = {};
+                if (!workData[dateStr][period][hourSlot]) workData[dateStr][period][hourSlot] = [];
+                
+                workData[dateStr][period][hourSlot].push({
+                    desc: desc,
+                    category: 'urgent',
+                    done: false,
+                    exactTime: time,
+                    notified: false,
+                    id: Date.now()
+                });
+                
+                saveData();
+                form.reset();
+                formContainer.style.display = 'none';
+                renderDayView();
+            }
+        });
+    }
+    
+    // Notification scheduler temporarily disabled
+    // startNotificationScheduler();
+});

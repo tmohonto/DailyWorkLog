@@ -2432,3 +2432,189 @@ circle {
     .bar-amount { min-width: 55px; font-size: 0.75rem; }
     .bar-track { height: 12px; }
 }
+
+/* Needed Work Section */
+.needed-work-container {
+    margin-bottom: 1.5rem;
+}
+
+.needed-work-toggle-btn {
+    width: 100%;
+    padding: 0.8rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.needed-work-toggle-btn:hover {
+    background: var(--glass-bg-hover);
+    transform: translateY(-1px);
+    border-color: var(--primary-color);
+}
+
+.needed-work-toggle-btn .icon {
+    color: #fbbf24;
+}
+
+.needed-work-content {
+    margin-top: 10px;
+    padding: 1.2rem;
+    border-radius: var(--radius-md);
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.needed-work-list {
+    list-style: none;
+    margin: 0 0 1rem 0;
+    padding: 0;
+    counter-reset: needed-counter;
+}
+
+.needed-work-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+    counter-increment: needed-counter;
+}
+
+.needed-work-item::before {
+    content: counter(needed-counter) ".";
+    font-weight: 700;
+    color: var(--accent);
+    margin-right: 10px;
+    min-width: 20px;
+}
+
+.needed-work-item-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.needed-work-time {
+    font-size: 0.8rem;
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--primary-color);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+}
+
+.needed-work-desc {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.needed-work-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.needed-work-action-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: color 0.2s;
+    padding: 4px;
+}
+
+.needed-work-action-btn:hover {
+    color: var(--danger);
+}
+
+.needed-work-action-btn.done-btn:hover {
+    color: #10b981;
+}
+
+#needed-work-form {
+    display: flex;
+    gap: 10px;
+    margin-top: 1rem;
+}
+
+@media (max-width: 600px) {
+    #needed-work-form {
+        flex-direction: column;
+    }
+}
+
+/* Custom Time Input */
+.custom-time-input {
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.custom-time-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.6;
+    cursor: pointer;
+}
+
+:root[data-theme="light"] .custom-time-input::-webkit-calendar-picker-indicator {
+    filter: invert(0);
+}
+
+.custom-time-input::-webkit-datetime-edit-fields-wrapper {
+    display: flex;
+    justify-content: center;
+}
+
+#needed-work-form {
+    background: transparent;
+    border-top: 1px dashed var(--glass-border);
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+
+/* Stylish Add Button */
+.stylish-add-btn {
+    width: 100%;
+    padding: 0.8rem;
+    margin-top: 1rem;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px dashed var(--primary-color);
+    border-radius: var(--radius-md);
+    color: var(--primary-color);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.stylish-add-btn:hover {
+    background: rgba(99, 102, 241, 0.2);
+    transform: translateY(-1px);
+}
+
+/* Done State */
+.needed-work-item.done-task {
+    background: rgba(16, 185, 129, 0.05);
+    border-color: rgba(16, 185, 129, 0.3);
+    opacity: 0.7;
+}
+
+.needed-work-item.done-task .needed-work-desc {
+    text-decoration: line-through;
+    color: #10b981;
+}
+
+.needed-work-item.done-task .needed-work-time {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}

@@ -153,6 +153,30 @@
                     <div class="motivation-quote-small" id="motivation-quote">"Loading inspiration..."</div>
                 </div>
 
+                <div class="needed-work-container" id="needed-work-container">
+                    <!-- Dynamic state handled by app.js -->
+                    <button class="needed-work-toggle-btn" id="needed-work-toggle-btn">
+                        <span class="icon">⚡</span> Needed Work
+                    </button>
+                    
+                    <ul class="needed-work-list" id="needed-work-list" style="display: none;">
+                        <!-- Tasks will go here -->
+                    </ul>
+                    
+                    <button class="stylish-add-btn" id="stylish-add-btn" style="display: none;">
+                        + Add Urgent Work
+                    </button>
+
+                    <div class="needed-work-form-container" id="needed-work-form-container" style="display: none;">
+                        <form id="needed-work-form" class="inline-form">
+                            <input type="text" id="nw-desc" class="inline-input" placeholder="What needs to be done today?" required>
+                            <input type="time" id="nw-time" class="inline-input custom-time-input" required>
+                            <button type="submit" class="inline-btn primary-submit">Add</button>
+                            <button type="button" class="inline-btn btn-cancel" id="nw-cancel">Cancel</button>
+                        </form>
+                    </div>
+                </div>
+
                 <div class="day-layout">
                     <div class="day-main">
                         <div class="view-toggles">
@@ -332,6 +356,10 @@
                     <div class="form-group">
                         <label for="edit-category">Work Type</label>
                         <select id="edit-category" class="glass-select"></select>
+                    </div>
+                    <div class="form-group" id="edit-time-group" style="display: none;">
+                        <label for="edit-time">Start Time</label>
+                        <input type="time" id="edit-time" class="custom-time-input">
                     </div>
                     <div class="form-group">
                         <label for="edit-amount">Amount (৳)</label>
