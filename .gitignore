@@ -1,0 +1,13 @@
+# Configuration files (containing secrets)
+config.js
+config.local.js
+
+# Build artifacts
+dist/
+build/
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+node_modules/

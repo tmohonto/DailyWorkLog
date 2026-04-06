@@ -1,24 +1,18 @@
 // ==========================================
-// FIREBASE CONFIGURATION
+// CONFIGURATION RESOLVER
 // ==========================================
-// TODO: Replace this with your actual Firebase config!
-// 1. Go to console.firebase.google.com
-// 2. Create a new project or open an existing one
-// 3. Click the gear icon > Project settings
-// 4. Scroll down to "Your apps" and add a Web App (</>)
-// 5. Copy the config object and paste it below
-const firebaseConfig = {
-  apiKey: "AIzaSyBGNLjdD9610NbkbAmQfJB6g8a2zkXRrkY",
-  authDomain: "workflow-cfe32.firebaseapp.com",
-  projectId: "workflow-cfe32",
-  storageBucket: "workflow-cfe32.firebasestorage.app",
-  messagingSenderId: "29625530290",
-  appId: "1:29625530290:web:601c02f54f51006a0ed6ab",
-  measurementId: "G-FCWXJS1L4G"
+const firebaseConfig = window.CONFIG?.FIREBASE || {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: "",
+  measurementId: ""
 };
 
 // Initialize Google Sheet settings
-const DEFAULT_SPREADSHEET_ID = "1foyUzvCR8yBQTj4p-Xv2t0r064eqNhf0ZzHgiNgyQxU";
+const DEFAULT_SPREADSHEET_ID = window.CONFIG?.GOOGLE_SHEETS?.DEFAULT_SPREADSHEET_ID || "";
 let SPREADSHEET_ID = localStorage.getItem('Workflow_Sheet_ID') || DEFAULT_SPREADSHEET_ID;
 let SHEET_NAME_OVERRIDE = localStorage.getItem('Workflow_Sheet_Name');
 let gapiInitialized = false;
