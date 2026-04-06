@@ -2626,3 +2626,55 @@ circle {
     background: rgba(16, 185, 129, 0.15);
     color: #10b981;
 }
+
+/* Desktop Modernization for Urgent Works */
+@media (min-width: 601px) {
+    #needed-work-form {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    #needed-work-form .inline-input:not(.custom-time-input) {
+        flex: 2; /* Take twice the space */
+    }
+    
+    #needed-work-form .custom-time-input {
+        flex: 1;
+        max-width: 150px;
+    }
+    
+    #needed-work-form .inline-btn {
+        flex: unset;
+        width: auto;
+        min-width: 100px;
+        height: 100%;
+    }
+    
+    .needed-work-item {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-md);
+        padding: 1rem 1.2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 0.8rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .needed-work-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        border-color: rgba(255,255,255, 0.2);
+    }
+    
+    .needed-work-item.done-task {
+        transform: none; /* remove hover lift for done tasks */
+        box-shadow: none;
+    }
+}
