@@ -2559,6 +2559,19 @@ circle {
     font-family: 'Outfit', sans-serif;
     color: var(--text-primary);
     cursor: pointer;
+    background: rgba(255, 255, 255, 0.05); /* Stylish subtle background for iOS rendering */
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    padding: 0.8rem;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+}
+
+:root[data-theme="light"] .custom-time-input {
+    background: rgba(0, 0, 0, 0.03); /* Subtle background for light theme */
+    color: var(--text-primary);
 }
 
 .custom-time-input::-webkit-calendar-picker-indicator {
@@ -2569,11 +2582,6 @@ circle {
 
 :root[data-theme="light"] .custom-time-input::-webkit-calendar-picker-indicator {
     filter: invert(0);
-}
-
-.custom-time-input::-webkit-datetime-edit-fields-wrapper {
-    display: flex;
-    justify-content: center;
 }
 
 #needed-work-form {
