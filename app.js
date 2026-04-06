@@ -12,17 +12,29 @@ const STORAGE_KEY = 'WorkflowData';
 var workData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
 // Static Categories (Expanded)
-const CATEGORIES = [
-    { id: 'personal', label: 'Personal', color: '#10b981', icon: '🟢' },
-    { id: 'office', label: 'Office', color: '#f59e0b', icon: '🏢' },
-    { id: 'routine', label: 'Routine', color: '#3b82f6', icon: '🔵' },
-    { id: 'work', label: 'Work', color: '#8b5cf6', icon: '💼' },
-    { id: 'urgent', label: 'Urgent', color: '#ef4444', icon: '🔴' },
-    { id: 'learning', label: 'Learning', color: '#ec4899', icon: '📚' },
-    { id: 'meeting', label: 'Meeting', color: '#06b6d4', icon: '🤝' },
-    { id: 'heal', label: 'Heal', color: '#f43f5e', icon: '❤️' },
-    { id: 'planning', label: 'Planning', color: '#6366f1', icon: '📋' }
+window.CATEGORIES = [
+    // Work Tracking Categories
+    { id: 'personal', label: 'Personal', color: '#10b981', icon: '🟢', type: 'both' },
+    { id: 'office', label: 'Office', color: '#f59e0b', icon: '🏢', type: 'work' },
+    { id: 'routine', label: 'Routine', color: '#3b82f6', icon: '🔵', type: 'work' },
+    { id: 'work', label: 'Work', color: '#8b5cf6', icon: '💼', type: 'work' },
+    { id: 'urgent', label: 'Urgent', color: '#ef4444', icon: '🔴', type: 'work' },
+    { id: 'learning', label: 'Learning', color: '#ec4899', icon: '📚', type: 'work' },
+    { id: 'meeting', label: 'Meeting', color: '#06b6d4', icon: '🤝', type: 'work' },
+    { id: 'heal', label: 'Heal', color: '#f43f5e', icon: '❤️', type: 'work' },
+    { id: 'planning', label: 'Planning', color: '#6366f1', icon: '📋', type: 'work' },
+    // Expense Tracking Categories
+    { id: 'meal', label: 'Meal Food', color: '#10b981', icon: '🍛', type: 'expense' },
+    { id: 'extra', label: 'Extra Food', color: '#f59e0b', icon: '🍕', type: 'expense' },
+    { id: 'health', label: 'Health/medicine', color: '#ef4444', icon: '💊', type: 'expense' },
+    { id: 'bills', label: 'Bills & Maintenance', color: '#8b5cf6', icon: '🏠', type: 'expense' },
+    { id: 'transport', label: 'Transportation', color: '#3b82f6', icon: '🚌', type: 'expense' },
+    { id: 'travel', label: 'Travel', color: '#ec4899', icon: '✈️', type: 'expense' },
+    { id: 'debt', label: 'Debt', color: '#f43f5e', icon: '💳', type: 'expense' },
+    { id: 'other', label: 'Other', color: '#6366f1', icon: '⚙️', type: 'expense' }
 ];
+
+const CATEGORIES = window.CATEGORIES;
 
 function updateCategoryStyles() {
     let styleTag = document.getElementById('dynamic-category-styles');
@@ -44,15 +56,17 @@ function updateCategoryStyles() {
     styleTag.innerHTML = css;
 }
 
-function populateCategorySelect(select) {
+function populateCategorySelect(select, isExpense = false) {
     if (!select) return;
     const currentVal = select.value;
     let html = '';
     CATEGORIES.forEach(cat => {
-        html += `<option value="${cat.id}">${cat.icon || '●'} ${cat.label}</option>`;
+        if (cat.type === 'both' || (isExpense && cat.type === 'expense') || (!isExpense && cat.type === 'work')) {
+            html += `<option value="${cat.id}">${cat.icon || '●'} ${cat.label}</option>`;
+        }
     });
     select.innerHTML = html;
-    if (currentVal) select.value = currentVal;
+    // Don't restore value if we switch lists, as IDs will mismatch
 }
 
 function renderCategorySelects() {
@@ -147,6 +161,35 @@ document.addEventListener('DOMContentLoaded', () => {
             if (desc && !isNaN(amount) && timeSlot) {
                 addExpense(desc, amount, category, timeSlot);
                 expenseForm.reset();
+            }
+        });
+    }
+
+    // Sheet Settings Listeners
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const mobileSettingsBtn = document.querySelector('.sheet-settings-trigger');
+    const closeSettingsBtn = document.getElementById('close-settings-modal');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const settingsModal = document.getElementById('settings-modal-overlay');
+
+    const openSettings = () => {
+        document.getElementById('settings-sheet-id').value = SPREADSHEET_ID;
+        document.getElementById('settings-sheet-name').value = SHEET_NAME_OVERRIDE || "";
+        settingsModal.classList.add('active');
+    };
+    const closeSettings = () => settingsModal.classList.remove('active');
+
+    if (openSettingsBtn) openSettingsBtn.addEventListener('click', openSettings);
+    if (mobileSettingsBtn) mobileSettingsBtn.addEventListener('click', openSettings);
+    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', () => {
+            const newId = document.getElementById('settings-sheet-id').value;
+            const newName = document.getElementById('settings-sheet-name').value;
+            if (typeof updateSheetSettings === 'function') {
+                updateSheetSettings(newId, newName);
+                alert("Settings Saved! Sync is now active.");
+                closeSettings();
             }
         });
     }
@@ -580,6 +623,12 @@ function addExpense(desc, amount, category = 'personal', timeSlotStr = '') {
 
     saveData();
     renderDayView();
+
+    // Trigger Google Sheets sync
+    if (typeof appendExpenseToSheet === 'function') {
+        const catLabel = CATEGORIES.find(c => c.id === category)?.label || category;
+        appendExpenseToSheet(dateStr, amount, desc, catLabel);
+    }
 }
 
 function deleteExpenseById(id) {
@@ -748,11 +797,7 @@ function renderInlineInput(container, dateStr, hour) {
     input.placeholder = 'What needs to be done?';
     input.required = true;
 
-    const select = document.createElement('select');
-    select.className = 'inline-select';
-    
-    // Dynamic categories will be populated by populateCategorySelect()
-    populateCategorySelect(select);
+    // Categories will be handled in the propertiesRow below
 
     const amountInput = document.createElement('input');
     amountInput.type = 'number';
@@ -779,7 +824,10 @@ function renderInlineInput(container, dateStr, hour) {
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         const amt = parseFloat(amountInput.value) || 0;
-        saveInlineTask(dateStr, selectedPeriod, hour, input.value, select.value, amt);
+        const workCat = workSelect.value;
+        const expCat = amt > 0 ? expenseSelect.value : null;
+        
+        saveInlineTask(dateStr, selectedPeriod, hour, input.value, workCat, amt, expCat);
     });
 
     // Main Input Row
@@ -815,7 +863,7 @@ function renderInlineInput(container, dateStr, hour) {
                     return;
                 }
                 input.value = shortcut.name;
-                select.value = shortcut.cat;
+                workSelect.value = shortcut.cat;
                 input.focus();
             });
             
@@ -830,7 +878,7 @@ function renderInlineInput(container, dateStr, hour) {
         addBtn.addEventListener('click', () => {
             const name = input.value.trim() || prompt("Enter shortcut name:");
             if (name) {
-                userShortcuts.push({ name: name, cat: select.value });
+                userShortcuts.push({ name: name, cat: workSelect.value });
                 saveShortcuts();
                 renderChips();
             } else {
@@ -841,13 +889,32 @@ function renderInlineInput(container, dateStr, hour) {
     };
     renderChips();
 
-    // Properties Row (Amount + Category)
+    // Properties Row (Amount + Categories)
     const propertiesRow = document.createElement('div');
     propertiesRow.className = 'inline-properties-row';
     
     amountInput.className = 'inline-input inline-amount-input';
+    
+    // Create TWO selects
+    const workSelect = document.createElement('select');
+    workSelect.className = 'inline-category-select work-select';
+    populateCategorySelect(workSelect, false); // Always show work categories
+    
+    const expenseSelect = document.createElement('select');
+    expenseSelect.className = 'inline-category-select expense-select';
+    expenseSelect.style.display = 'none'; // Initially hidden
+    populateCategorySelect(expenseSelect, true); // Only for expenses
+
+    amountInput.addEventListener('input', () => {
+        const val = parseFloat(amountInput.value) || 0;
+        expenseSelect.style.display = val > 0 ? 'inline-block' : 'none'; 
+        if (val > 0) propertiesRow.classList.add('has-amount');
+        else propertiesRow.classList.remove('has-amount');
+    });
+
     propertiesRow.appendChild(amountInput);
-    propertiesRow.appendChild(select);
+    propertiesRow.appendChild(workSelect);
+    propertiesRow.appendChild(expenseSelect);
     form.appendChild(propertiesRow);
 
     form.appendChild(quickAddContainer);
@@ -871,18 +938,27 @@ function renderInlineInput(container, dateStr, hour) {
     setTimeout(() => input.focus(), 10);
 }
 
-function saveInlineTask(dateStr, period, hour, desc, category, amount = 0) {
+function saveInlineTask(dateStr, period, hour, desc, workCategory, amount = 0, expenseCategory = null) {
     if (!workData[dateStr]) workData[dateStr] = { AM: {}, PM: {} };
     if (!workData[dateStr][period]) workData[dateStr][period] = {};
     if (!workData[dateStr][period][hour]) workData[dateStr][period][hour] = [];
 
-    workData[dateStr][period][hour].push({
+    const newTask = {
         desc,
-        category,
+        category: workCategory,
         done: false,
         amount: amount,
         id: Date.now()
-    });
+    };
+
+    workData[dateStr][period][hour].push(newTask);
+    
+    // Google Sheets Sync (Using expense category)
+    if (amount > 0 && typeof appendExpenseToSheet === 'function') {
+        const finalExpCat = expenseCategory || workCategory; // Fallback to work cat label if no expense cat explicitly picked
+        const catLabel = CATEGORIES.find(c => c.id === finalExpCat)?.label || "Other";
+        appendExpenseToSheet(dateStr, amount, desc, catLabel);
+    }
     saveData();
     activeInlineInput = null;
     renderCurrentView();
