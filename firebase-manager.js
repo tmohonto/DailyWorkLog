@@ -274,7 +274,7 @@ async function appendExpenseToSheet(date, amount, description, category) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                values: [[sheetDate, `৳${amount.toFixed(2)}`, description, category]]
+                values: [[sheetDate, amount, description, category]]
             })
         });
 

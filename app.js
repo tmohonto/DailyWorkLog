@@ -701,9 +701,14 @@ function openEditModal(id) {
     editingId = id;
     document.getElementById('edit-desc').value = target.desc;
     
-    // Populate category dropdown
-    renderCategorySelects();
-    document.getElementById('edit-category').value = target.category || userCategories[0].id;
+    // Determine context (Work vs Expense)
+    const isEditingExpense = currentDayMode === 'expenses';
+    const catLabel = document.querySelector('label[for="edit-category"]');
+    if (catLabel) catLabel.textContent = isEditingExpense ? "Expense Category" : "Work Type";
+
+    // Populate category dropdown with correct context
+    populateCategorySelect(document.getElementById('edit-category'), isEditingExpense);
+    document.getElementById('edit-category').value = target.category || 'personal';
     
     document.getElementById('edit-amount').value = target.amount || 0;
     
@@ -1239,12 +1244,23 @@ function renderMonthView() {
             currentDate = new Date(loopDate);
             // Switch to Day view
             tabs.forEach(t => t.classList.remove('active'));
-            document.querySelector('[data-tab="day-view"]').classList.add('active');
+            const dayTab = document.querySelector('[data-tab="day-view"]');
+            if (dayTab) dayTab.classList.add('active');
 
             views.forEach(v => v.classList.remove('active'));
-            document.getElementById('day-view').classList.add('active');
+            const dayView = document.getElementById('day-view');
+            if (dayView) dayView.classList.add('active');
+            
             currentView = 'day-view';
+            currentDayMode = 'schedule';
+            selectedPeriod = 'PM'; // Go to PM tab as requested for second image interaction
+            
+            // Re-render
             renderDayView();
+            
+            // Micro-animation for feedback
+            cell.style.transform = 'scale(0.95)';
+            setTimeout(() => { cell.style.transform = ''; }, 150);
         });
 
         grid.appendChild(cell);
@@ -1295,6 +1311,27 @@ function renderMonthExpenseChart() {
     dayTotals.forEach(data => {
         const barGroup = document.createElement('div');
         barGroup.className = 'bar-group';
+        barGroup.title = `View details for day ${data.day}`;
+        
+        barGroup.addEventListener('click', () => {
+            currentDate = new Date(year, month, data.day);
+            // Switch to Day view
+            tabs.forEach(t => t.classList.remove('active'));
+            const dayTab = document.querySelector('[data-tab="day-view"]');
+            if (dayTab) dayTab.classList.add('active');
+
+            views.forEach(v => v.classList.remove('active'));
+            const dayView = document.getElementById('day-view');
+            if (dayView) dayView.classList.add('active');
+            
+            currentView = 'day-view';
+            currentDayMode = 'expenses'; // Go to expenses tab
+            renderDayView();
+
+            // Provide visual feedback
+            barGroup.style.transform = 'scale(0.98)';
+            setTimeout(() => { barGroup.style.transform = ''; }, 150);
+        });
         
         const label = document.createElement('div');
         label.className = 'bar-label';
@@ -1452,9 +1489,25 @@ function renderYearExpenseChart() {
         return;
     }
 
-    monthTotals.forEach(data => {
+    monthTotals.forEach((data, idx) => {
         const barGroup = document.createElement('div');
         barGroup.className = 'bar-group';
+        barGroup.title = `Switch to ${data.month}`;
+        
+        barGroup.addEventListener('click', () => {
+            currentDate.setMonth(idx);
+            // Switch to Month view
+            tabs.forEach(t => t.classList.remove('active'));
+            const monthTab = document.querySelector('[data-tab="month-view"]');
+            if (monthTab) monthTab.classList.add('active');
+
+            views.forEach(v => v.classList.remove('active'));
+            const monthView = document.getElementById('month-view');
+            if (monthView) monthView.classList.add('active');
+            
+            currentView = 'month-view';
+            renderMonthView();
+        });
         
         const label = document.createElement('div');
         label.className = 'bar-label';
